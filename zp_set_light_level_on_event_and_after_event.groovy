@@ -5,7 +5,7 @@
  *  Date: 2014-01-20
  */
 definition(
-    name: "Notify Me With Hue and Dimmable Lights",
+    name: "ZP Set Light Level On Event and Different Level After Event",
     namespace: "zpriddy",
     author: "Zachary Priddy",
     description: "Changes the color and brightness of Philips Hue and other dimmable bulbs when any of a variety of SmartThings is activated.  Supports motion, contact, acceleration, moisture and presence sensors as well as switches.",
@@ -46,8 +46,15 @@ preferences {
 			input "color", "enum", title: "Hue Color?", required: false, multiple:false, options: ["Red","Green","Blue","Yellow","Orange","Purple","Pink"]
 			input "lightLevel", "enum", title: "Light Level?", required: false, options: [[10:"10%"],[20:"20%"],[30:"30%"],[40:"40%"],[50:"50%"],[60:"60%"],[70:"70%"],[80:"80%"],[90:"90%"],[100:"100%"]]
 			input "duration", "number", title: "Duration Seconds?", required: false
+			input "endColor", "enum", title: "After Event Hue Color?", required: false, multiple:false, options: ["Red","Green","Blue","Yellow","Orange","Purple","Pink"]
+			input "endLightLevel", "enum", title: "After Event Light Level?", required: false, options: [[0:"Off"],[10:"10%"],[20:"20%"],[30:"30%"],[40:"40%"],[50:"50%"],[60:"60%"],[70:"70%"],[80:"80%"],[90:"90%"],[100:"100%"]]
 			//input "turnOn", "enum", title: "Turn On when Off?", required: false, options: ["Yes","No"]
 		}
+
+	section("Only run between sunset and sunrise?")
+	{
+		input "darkOnly", "boolean", required:false
+	}
 
 	section("Minimum time between messages (optional, defaults to every message)") {
 		input "frequency", "decimal", title: "Minutes", required: false
@@ -95,23 +102,36 @@ def eventHandler(evt) {
 	if (frequency) {
 		def lastTime = state[evt.deviceId]
 		if (lastTime == null || now() - lastTime >= frequency * 60000) {
-			takeAction(evt)
+			if(okayToRun())
+			{
+				takeAction(evt)
+			}
+			
 		}
 	}
 	else {
-		takeAction(evt)
+		if(okayToRun())
+		{
+			takeAction(evt)
+		}
 	}
 }
 
 def modeChangeHandler(evt) {
 	log.trace "modeChangeHandler $evt.name: $evt.value ($triggerModes)"
 	if (evt.value in triggerModes) {
-		eventHandler(evt)
+		if(okayToRun())
+		{
+			eventHandler(evt)
+		}
 	}
 }
 
 def scheduledTimeHandler() {
-	eventHandler(null)
+	if(okayToRun())
+	{
+		eventHandler(null)
+	}
 }
 
 def appTouchHandler(evt) {
@@ -137,6 +157,20 @@ private takeAction(evt) {
 		hueColor = 75
 	else if(color == "Pink")
 		hueColor = 83
+
+	def endHueColor = 0
+	if(endColor == "Blue")
+		endHueColor = 70//60
+	else if(endColor == "Green")
+		endHueColor = 39//30
+	else if(endColor == "Yellow")
+		endHueColor = 25//16
+	else if(endColor == "Orange")
+		endHueColor = 10
+	else if(endColor == "Purple")
+		endHueColor = 75
+	else if(endColor == "Pink")
+		endHueColor = 83
 
 
 	state.previous = [:]
@@ -202,21 +236,46 @@ def resetHue()
 	log.debug "Resetting Lights"
 
 	hues.each {
-		it.setColor(state.previous[it.id])
+		it.setColor([hue: endHueColor, saturation: 100, level: (endLightLevel as Integer)])
 	}
 
 	lights.each
 	{
-		if(state.previous[it.id] == 0)
+		if(endLightLevel == 0)
 		{
 			it.off()
 		}
 		else
 		{
-			it.setLevel(state.previous[it.id])
+			it.setLevel(endLightLevel)
 		}
 	}
 }
 
+private isNightTime()
+{
+	if(getSunriseAndSunset().sunrise.time > now() || getSunriseAndSunset().sunset.time < now())
+	{
+    	log.debug "It is night time"
+    	return true
+    }
+    else 
+    {
+    	log.debug "It is day time"
+    	return false
+    }
+}
+
+private okayToRun()
+{
+	def okay = true
+
+	if( darkOnly && !isNightTime)
+	{
+		okay = false
+	}
+
+	return okay
+}
 
 
