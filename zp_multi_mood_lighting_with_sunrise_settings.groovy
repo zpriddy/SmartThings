@@ -360,7 +360,7 @@ private takeAction(evt) {
 	def zHue2Level = dayLightLevel2
 
 	//Configure Things for night time
-	if(isNightTime)
+	if(isNightTime())
 	{
 		zHues1 = nightHues1
 		zHues2 = nightHues2
@@ -380,7 +380,7 @@ private takeAction(evt) {
 	zHues1.each
 	{ hue ->
 
-		hue.setColor([hue: zGroupHue, saturation: zGroupSaturation, level: nextLevel])
+		hue.setColor([hue: zGroupHue, saturation: zGroupSaturation, level: zHue1Level as int])
 		pause(350)
 	}
 
@@ -391,7 +391,7 @@ private takeAction(evt) {
 	zHues2.each
 	{ hue ->
 
-		hue.setColor([hue: zGroupHue, saturation: zGroupSaturation, level: nextLevel])
+		hue.setColor([hue: zGroupHue, saturation: zGroupSaturation, level: zHue1Level as int])
 		pause(350)
 	}
 
