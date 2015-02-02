@@ -5,7 +5,7 @@
  *  
  *  Date: 2015-02-01
  * 
- *  Credit givin to Eric Roberts for his work on Better Sunrise/Sunset
+ *  Credit given to Eric Roberts for his work on Better Sunrise/Sunset
  */
 definition(
     name: "ZP Testing",
