@@ -23,8 +23,14 @@ preferences {
 	page name:"modeSettings"
 }
 
+//***********************************************************************************
+// Configuration Functions
+//***********************************************************************************
+
 def setupInit() {
 	TRACE("setupInit()")
+	log.debug "Current Settings: ${settings}"
+
 	if (state.installed) {
 		//return setupModeTypes()
         return setupConfigure()
@@ -104,7 +110,7 @@ def setModeNames()
 		def sampleNames = [ "", "Home", "Away", "Vaction", "Sleeping", "Alarm"]
 		for (int n = 1; n <= numModeTypes; n++){
 			section("Name for Mode ${n}"){
-				input name: "m${n}_name", type: "text", tite: "Mode Name", defaultValue: sampleNames[n]?.value, required: true
+				input name: "m${n}_name", type: "text", tite: "Mode Name", defaultValue: (settings."m${n}_name") ?  settings."m${n}_name" : sampleNames[n]?.value, required: true
 			}
 		}
 		section("Help..", hideable: true, hidden: true)
@@ -172,6 +178,8 @@ def modeSettings(params)
 	def textNightHue =
 		"These Hue lights will be set the colors set below. There are two groups of Hue lights."
 
+	def textAutoChange =
+		"Do you want this mode to auto change to night/day settings on sunset/sunrise. If not it will only chnage when the mode changes."
 
 
 	def textOnSunsetHelp =
@@ -183,12 +191,18 @@ def modeSettings(params)
 	def n = params?.modeNumber
 	def name = settings."m${n}_name"
 	def hueSettings = settings.hasHue
+
 	
 	dynamicPage(name: "modeSettings", title: "Set settings for ${name}"){
 		section("Mode Type ${name}", hideable:false) 
 		{
 			paragraph textDayHelp
 			input "m${n}_mode", "mode", title: "Mode", required: true
+		}
+		section("Auto Chnage Day/Night", hideable:false) 
+		{
+			paragraph textAutoChange
+			input "m${n}_auto", "boolean", title: "Auto Chnage", required: true
 		}
 		section("Day Settings For ${name}", hideable: true, hidden: false)
 		{
@@ -243,7 +257,7 @@ def modeSettings(params)
 				input "m${n}_nightHue1Color", "enum", title: "Night Hue Color (Group 1)", required: false, multiple:false, options: [
 					["Soft White":"Soft White - Default"],
 					["White":"White - Concentrate"],
-					["Nightlight":"Nightlight - Energize"],
+					["Daylight":"Daylight - Energize"],
 					["Warm White":"Warm White - Relax"],
 					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
 				input "m${n}_nightHue1Level", "number", title: "Set Hue To This Level (Group 1)", required: false
@@ -252,7 +266,7 @@ def modeSettings(params)
 				input "m${n}_nightHue2Color", "enum", title: "Night Hue Color (Group 2)", required: false, multiple:false, options: [
 					["Soft White":"Soft White - Default"],
 					["White":"White - Concentrate"],
-					["Nightlight":"Nightlight - Energize"],
+					["Daylight":"Daylight - Energize"],
 					["Warm White":"Warm White - Relax"],
 					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
 				input "m${n}_nightHue2Level", "number", title: "Set Dimmer To This Level (Group 2)", required: false
@@ -268,7 +282,9 @@ def modeSettings(params)
 	
 }
 
-// installed/updated/init
+//***********************************************************************************
+// Installation Functions
+//***********************************************************************************
 
 def installed() {
 	log.debug "Installed with settings: ${settings}"
@@ -281,6 +297,7 @@ def updated() {
 
 	unsubscribe()
 	initialize()
+	subscribeToEvents()
 }
 
 def initialize() {
@@ -295,14 +312,17 @@ def initialize() {
 
     state.numModeTypes = numModeTypes
 
-    
-
-    //log.debug("init modeTypes ${state.modeTypes}")
-
     scheduleSunriseSunset()
+    subscribeToEvents()
     TRACE("End init")
 }
 
+def subscribeToEvents()
+{
+	subscribe(location, modeChangeHandler)
+}
+
+/*
 def setupModeType(n) {
 	TRACE("setupModeType($n)")
 	def modeType = [:]
@@ -329,8 +349,11 @@ def getModeTypeDevices(n) {
 
     return devices
 }
+*/
 
-// schedule
+//***********************************************************************************
+// Scheduling Functions
+//***********************************************************************************
 
 def scheduleSunriseSunset() {
 	TRACE("scheduleSunriseSunset()")
@@ -356,10 +379,20 @@ def scheduleSunriseSunset() {
     log.debug( "Sunset today is at $sunsetTime" )
     log.debug( "Sunrise today is at $sunriseTime" )
 
-    unschedule()    
-    schedule(sunriseScheduleTime, sunrise)
-    schedule(sunsetScheduleTime, sunset)
-    schedule(timeTodayAfter(new Date(), '01:00', timezone), scheduleSunriseSunset)
+    unschedule()
+    if(sunriseScheduleTime < sunsetScheduleTime  && !isDayTime())
+    {
+    	log.debug "Scheduling Sunrise"    
+    	schedule(sunriseScheduleTime, sunrise)
+    }
+    else
+    {
+    	log.debug "Scheduling Sunset"
+    	schedule(sunsetScheduleTime, sunset)
+    }
+
+    //Taking this out to save resources. Each time sunset ot sunrise happens it will reschedle the next one
+    //schedule(timeTodayAfter(new Date(), '01:00', timezone), scheduleSunriseSunset)
 }
 
 def getSunriseWithOffset(srOff) {
@@ -414,7 +447,7 @@ def isDayTime()
 	def sunsetScheduleTime = getSunsetWithOffset(ssOff)
 
 
-	if(sunriseScheduleTime > now() || sunsetScheduleTime < now())
+	if(sunriseScheduleTime.time > now() || sunsetScheduleTime.time < now())
 	{
     	log.debug "It is night time"
     	state.dayTime = false
@@ -428,13 +461,90 @@ def isDayTime()
     }
 }
 
+//***********************************************************************************
+// Hue Functions
+//***********************************************************************************
 
-// events
+int getHueColor(color)
+{
+	def hueColor =  0
+
+	switch(color) 
+	{
+
+		case "White":
+			hueColor = 52
+			break;
+		case "Daylight":
+			hueColor = 53
+			break;
+		case "Soft White":
+			hueColor = 23
+			break;
+		case "Warm White":
+			hueColor = 20
+			break;
+		case "Blue":
+			hueColor = 70
+			break;
+		case "Green":
+			hueColor = 39
+			break;
+		case "Yellow":
+			hueColor = 25
+			break;
+		case "Orange":
+			hueColor = 10
+			break;
+		case "Purple":
+			hueColor = 75
+			break;
+		case "Pink":
+			hueColor = 83
+			break;
+		case "Red":
+			hueColor = 100
+			break;
+	}
+	return hueColor
+}
+
+int getHueSat(color)
+{
+	def hueSaturation = 100
+
+	switch(color) 
+	{
+		case "White":
+			hueSaturation = 19
+			break;
+		case "Daylight":
+			hueSaturation = 91
+			break;
+		case "Soft White":
+			hueSaturation = 56
+			break;
+		case "Warm White":
+			hueSaturation = 80 //83
+			break;
+	}
+	return hueSaturation
+}
+
+
+
+
+//***********************************************************************************
+// Event Functions
+//***********************************************************************************
 
 def sunrise() {
 	state.dayTime = true
+	scheduleSunriseSunset()
 	TRACE("sunrise()")
+	modeAutoChange()
 
+	/*
 	def currentMode = location.mode
 	def n = state.sunriseArray.indexOf(currentMode)
     log.debug("currentMode $currentMode sunriseArray ${state.sunriseArray}")
@@ -452,11 +562,16 @@ def sunrise() {
         }
 		changeMode(modeType.dayMode)
 	}
+	*/
 }
 
 def sunset() {
 	state.dayTime = true
+	scheduleSunriseSunset()
 	TRACE("sunset()")
+	modeAutoChange()
+
+	/*
 
 	def currentMode = location.mode
 	def n = state.sunsetArray.indexOf(currentMode)
@@ -473,6 +588,169 @@ def sunset() {
         }
 		changeMode(modeType.nightMode)
 	}
+	*/
+}
+/*
+def eventHandler(evt) {
+	log.trace "eventHandler($evt.name: $evt.value)"
+	if (allOk) {
+		log.trace "allOk"
+		def lastTime = state[frequencyKey(evt)]
+		if (oncePerDayOk(lastTime)) {
+			if (frequency) {
+				if (lastTime == null || now() - lastTime >= frequency * 60000) {
+					takeAction(evt)
+				}
+			}
+			else {
+				takeAction(evt)
+			}
+		}
+		else {
+			log.debug "Not taking action because it was already taken today"
+		}
+	}
+}
+*/
+def modeChangeHandler(evt) {
+	log.trace "modeChangeHandler $evt.name: $evt.value ($triggerModes)"
+	for (int n = 1; n <= numModeTypes; n++)
+	{
+		def name = settings."m${n}_name"
+		def modeName = settings."m${n}_mode"
+
+		log.debug "EVENT VALUE: $evt.value"
+		log.debug "MODE NAME $modeName"
+
+		if(evt.value in modeName)
+		{
+			modeChnage(n)
+		}
+
+	}
+
+	log.debug "Finished Changing All"
+}
+
+def modeAutoChange()
+{
+	for (int n = 1; n <= numModeTypes; n++)
+	{
+		def name = settings."m${n}_name"
+		def modeName = settings."m${n}_mode"
+		def autoChnage = settings."m${n}_auto"
+
+		if(location.mode in modeName)
+		{
+			if(autoChnage == "true")
+			{
+				modeChnage(n)
+			}
+		}
+
+	}
+}
+
+def modeChnage(modeNumber)
+{
+	def n = modeNumber
+
+	if(isDayTime())
+	{
+		log.debug "Changing lights for daytime"
+
+		state.lightsOff = settings."m${n}_dayLightsOff"
+		state.lightsDim1 = settings."m${n}_dayDim1"
+		state.lightsDim1Level = settings."m${n}_dayDim1Level"
+		state.lightsDim2 = settings."m${n}_dayDim2"
+		state.lightsDim2Level = settings."m${n}_dayDim2Level"
+
+		if(settings.hasHue == "true")
+		{
+			state.hue1 = settings."m${n}_dayHue1"
+			state.hue1Color = settings."m${n}_dayHue1Color"
+			state.hue1Level = settings."m${n}_dayHue1Level"
+
+			state.hue2 = settings."m${n}_dayHue2"
+			state.hue2Color = settings."m${n}_dayHue2Color"
+			state.hue2Level = settings."m${n}_dayHue2Level"
+		}
+
+	}
+	else
+	{
+		log.debug "Changing lights for night time"
+
+		state.lightsOff = settings."m${n}_nightLightsOff"
+		state.lightsDim1 = settings."m${n}_nightDim1"
+		state.lightsDim1Level = settings."m${n}_nightDim1Level"
+		state.lightsDim2 = settings."m${n}_nightDim2"
+		state.lightsDim2Level = settings."m${n}_nightDim2Level"
+
+		if(settings.hasHue == "true")
+		{
+			state.hue1 = settings."m${n}_nightHue1"
+			state.hue1Color = settings."m${n}_nightHue1Color"
+			state.hue1Level = settings."m${n}_nightHue1Level"
+
+			state.hue2 = settings."m${n}_nightHue2"
+			state.hue2Color = settings."m${n}_nightHue2Color"
+			state.hue2Level = settings."m${n}_nightHue2Level"
+		}
+	}
+
+	//Start Chnaging The Lights
+
+	log.debug "Starting to chnage lights"
+
+
+	state.lightsOff.each{
+		light ->
+		light.off()
+		pause(100)
+	}
+
+	state.lightsDim1.each{
+		light ->
+		light.on()
+		light.setLevel(state.lightsDim1Level as int)
+		pause(100)
+	}
+
+	state.lightsDim2.each{
+		light ->
+		light.on()
+		light.setLevel(state.lightsDim2Level as int)
+		pause(100)
+	}
+
+	if(settings.hasHue == "true")
+	{
+		def hueColor  = getHueColor(state.hue1Color)
+		def hueSaturation = getHueSat(state.hue1Color)
+		def hueLevel = state.hue1Level
+
+		state.hue1.each{
+			hue ->
+			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, switch: "on"])
+			pause(350)
+
+		}
+
+		hueColor  = getHueColor(state.hue2Color)
+		hueSaturation = getHueSat(state.hue2Color)
+		hueLevel = state.hue2Level
+
+		state.hue2.each{
+			hue ->
+			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, switch: "on"])
+			pause(350)
+
+		}
+	}
+
+	log.debug "Finished changing lights"
+
 }
 
 
