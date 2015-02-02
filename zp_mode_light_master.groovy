@@ -2,8 +2,10 @@
  *  Hue Multi Mood Lighting with Sunrise Sunset settings 
  *
  *  Author: Zachary Priddy - me@zpriddy.com
- *  *
- *  Date: 2014-02-21
+ *  
+ *  Date: 2015-02-01
+ * 
+ *  Credit givin to Eric Roberts for his work on Better Sunrise/Sunset
  */
 definition(
     name: "ZP Testing",
@@ -11,8 +13,8 @@ definition(
     author: "Zachary Priddy  me@zpriddy.com",
     description: "Sets the colors and brightness level of your Philips Hue lights to match your mood.",
     category: "SmartThings Labs",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Partner/hue.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Partner/hue@2x.png"
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/App-LightUpMyWorld.png",
+	iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/App-LightUpMyWorld@2x.png"
 )
 
 preferences {
@@ -64,14 +66,6 @@ def setupConfigure() {
 		uninstall: 		true
 	]
 
-/*
-	def pageProperties = [
-		name: 			"setupConfigure",
-		title: 			"Number of Mode Types",
-        install: 		true,
-		uninstall: 		false
-	]
-    */
 	return dynamicPage(pageProperties) {
 		section("Number of Mode Types") {
 			paragraph modeHelp
@@ -93,12 +87,7 @@ def setupConfigure() {
 		section ("Zip code (optional, defaults to location coordinates)...") {
 			input "zipCode", "text", required: false
 		}
-        /*
-		section( "Notifications" ) {
-			input "sendPushMessage", "enum", title: "Send a push notification?", options: ["Yes", "No"], required: false
-			input "phoneNumber", "phone", title: "Send a text message?", required: false
-		}
-        */
+
 	}
 }
 
@@ -322,34 +311,6 @@ def subscribeToEvents()
 	subscribe(location, modeChangeHandler)
 }
 
-/*
-def setupModeType(n) {
-	TRACE("setupModeType($n)")
-	def modeType = [:]
-	modeType.dayMode = settings."m${n}_dayMode"
-	modeType.nightMode = settings."m${n}_nightMode"
-
-	state.modeTypes.push(modeType)
-    state.sunriseArray.push(modeType.nightMode)
-    state.sunsetArray.push(modeType.dayMode)
-}
-
-def getModeTypeDevices(n) {
-	if (n >= state.numModeTypes) {
-    	return null
-    }
-    n++
-
-    def devices = [:]
-
-	devices.sunriseOnSwitches = settings."m${n}_sunriseOnSwitches"
-	devices.sunriseOffSwitches = settings."m${n}_sunriseOffSwitches"
-	devices.sunsetOnSwitches = settings."m${n}_sunsetOnSwitches"
-	devices.sunsetOffSwitches = settings."m${n}_sunsetOffSwitches"
-
-    return devices
-}
-*/
 
 //***********************************************************************************
 // Scheduling Functions
@@ -407,8 +368,7 @@ def getSunsetWithOffset(ssOff) {
 }
 
 def sunriseOffset() {
-	//log.debug("settings.sunriseOffsetValue ${settings.sunriseOffsetValue}")
-    //log.debug("settings.sunriseOffsetDir ${settings.sunriseOffsetDir}")
+
 	if ((settings.sunriseOffsetValue != null) && (settings.sunriseOffsetDir != null)) {
 		def offsetString = ""
 		if (settings.sunriseOffsetDir == 'Before') {
@@ -422,9 +382,7 @@ def sunriseOffset() {
 }
 
 def sunsetOffset() {
-	//log.debug("settings.sunsetOffsetValue ${settings.sunsetOffsetValue}")
-    //log.debug("settings.sunsetOffsetDir ${settings.sunsetOffsetDir}")
-    //log.debug((settings.sunsetOffsetValue != null) && (settings.sunsetOffsetDir != null))
+
 	if ((settings.sunsetOffsetValue != null) && (settings.sunsetOffsetDir != null)) {
 		def offsetString = ""
 		if (settings.sunsetOffsetDir == 'Before') {
@@ -571,47 +529,9 @@ def sunset() {
 	TRACE("sunset()")
 	modeAutoChange()
 
-	/*
 
-	def currentMode = location.mode
-	def n = state.sunsetArray.indexOf(currentMode)
-	if (n >= 0) {
-		def modeType = state.modeTypes[n]
-        def devices = getModeTypeDevices(n)
-        def onSwitches = devices.sunsetOnSwitches
-        def offSwitches = devices.sunsetOffSwitches
-		if (onSwitches != null) {
-        	onSwitches.on()
-        }
-        if (offSwitches != null) {
-        	offSwitches.off()
-        }
-		changeMode(modeType.nightMode)
-	}
-	*/
 }
-/*
-def eventHandler(evt) {
-	log.trace "eventHandler($evt.name: $evt.value)"
-	if (allOk) {
-		log.trace "allOk"
-		def lastTime = state[frequencyKey(evt)]
-		if (oncePerDayOk(lastTime)) {
-			if (frequency) {
-				if (lastTime == null || now() - lastTime >= frequency * 60000) {
-					takeAction(evt)
-				}
-			}
-			else {
-				takeAction(evt)
-			}
-		}
-		else {
-			log.debug "Not taking action because it was already taken today"
-		}
-	}
-}
-*/
+
 def modeChangeHandler(evt) {
 	log.trace "modeChangeHandler $evt.name: $evt.value ($triggerModes)"
 	for (int n = 1; n <= numModeTypes; n++)
@@ -753,20 +673,6 @@ def modeChnage(modeNumber)
 
 }
 
-
-//I dont need mode changing
-
-def changeMode(newMode) {
-	if (newMode && location.mode != newMode) {
-		if (location.modes?.find{it.name == newMode}) {
-			setLocationMode(newMode)
-			log.debug("has changed the mode to '${newMode}'")
-		}
-		else {
-			log.debug("tried to change to undefined mode '${newMode}'")
-		}
-	}
-}
 
 // debug
 
