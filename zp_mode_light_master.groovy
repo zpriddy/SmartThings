@@ -150,7 +150,10 @@ def modeSettings(params)
 		"This is the mode that will trigger these settings"
 
 	def textDayLightsOff =
-		"These are the lights that will be turnned off during the day"
+		"These are the switches that will be turnned off during the day"
+
+	def textDayLightsOn = 
+		"These are the switches that will be turnned on during the day"
 
 	def textDayDim =
 		"These lights will be set the dimmer value set below. There are two groups of dimmable lights."
@@ -159,7 +162,10 @@ def modeSettings(params)
 		"These Hue lights will be set the colors set below. There are two groups of Hue lights."
 
 	def textNightLightsOff =
-		"These are the lights that will be turnned off during the night"
+		"These are the switches that will be turnned off during the night"
+
+	def textNightLightsOn = 
+		"These are the switches that will be turnned on during the day"
 
 	def textNightDim =
 		"These lights will be set the dimmer value set below. There are two groups of dimmable lights."
@@ -196,7 +202,9 @@ def modeSettings(params)
 		section("Day Settings For ${name}", hideable: true, hidden: false)
 		{
 			paragraph textDayLightsOff
-			input "m${n}_dayLightsOff", "capability.switch", title: "Day Lights Off",  multiple: true, required: false
+			input "m${n}_dayLightsOff", "capability.switch", title: "Day Switches Off",  multiple: true, required: false
+			paragraph textDayLightsOn
+			input "m${n}_dayLightsOn", "capability.switch", title: "Day Switches On",  multiple: true, required: false
 			paragraph textDayDim
 			input "m${n}_dayDim1", "capability.switchLevel", title: "Day Dimmer Lights (Group 1)", multiple: true, required: false
 			input "m${n}_dayDim1Level", "number", title: "Set Dimmer To This Level (Group 1)", required: false
@@ -230,7 +238,9 @@ def modeSettings(params)
 		section("Night Settings For ${name}", hideable: true, hidden: false)
 		{
 			paragraph textNightLightsOff
-			input "m${n}_nightLightsOff", "capability.switch", title: "Night Lights Off",  multiple: true, required: false
+			input "m${n}_nightLightsOff", "capability.switch", title: "Night Switches Off",  multiple: true, required: false
+			paragraph textNightLightsOn
+			input "m${n}_nightLightsOn", "capability.switch", title: "Night Switches On",  multiple: true, required: false
 			paragraph textNightDim
 			input "m${n}_nightDim1", "capability.switchLevel", title: "Night Dimmer Lights (Group 1)", multiple: true, required: false
 			input "m${n}_nightDim1Level", "number", title: "Set Dimmer To This Level (Group 1)", required: false
@@ -580,6 +590,7 @@ def modeChnage(modeNumber)
 		log.debug "Changing lights for daytime"
 
 		state.lightsOff = settings."m${n}_dayLightsOff"
+		state.lightsOff = settings."m${n}_dayLightsOn"
 		state.lightsDim1 = settings."m${n}_dayDim1"
 		state.lightsDim1Level = settings."m${n}_dayDim1Level"
 		state.lightsDim2 = settings."m${n}_dayDim2"
@@ -602,6 +613,7 @@ def modeChnage(modeNumber)
 		log.debug "Changing lights for night time"
 
 		state.lightsOff = settings."m${n}_nightLightsOff"
+		state.lightsOff = settings."m${n}_nightLightsOn"
 		state.lightsDim1 = settings."m${n}_nightDim1"
 		state.lightsDim1Level = settings."m${n}_nightDim1Level"
 		state.lightsDim2 = settings."m${n}_nightDim2"
@@ -627,6 +639,12 @@ def modeChnage(modeNumber)
 	state.lightsOff.each{
 		light ->
 		light.off()
+		pause(100)
+	}
+
+	state.lightsOn.each{
+		light ->
+		light.on()
 		pause(100)
 	}
 
