@@ -353,7 +353,7 @@ def addGroups() {
 		//if(!d) {
 			def newHueGroup
 			if (groups instanceof java.util.Map) {
-				newHueGroup = groups //.find { (app.id + "/g/" + it.value.id) == dni }
+				newHueGroup = groups.find { (app.id + "/g/" + it.value.id) == dni }
 				d = addChildDevice("zpriddy", "ZP Hue Group", dni, newHueGroup?.hub, ["label":newHueGroup?.name])
 			//} else { //backwards compatable
 			//	newHueGroup = groups.find { (app.id + "/g/" + it.id) == dni }
