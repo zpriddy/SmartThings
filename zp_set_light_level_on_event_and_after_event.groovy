@@ -247,7 +247,7 @@ def resetHue()
 		}
 		else
 		{
-			it.setLevel(endLightLevel)
+			it.setLevel(endLightLevel as Integer)
 		}
 	}
 }
