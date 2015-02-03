@@ -367,3 +367,4 @@ def initialize() {
 def subscribeToEvents()
 {
 	subscribe(location, modeChangeHandler)
+}
