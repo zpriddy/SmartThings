@@ -8,7 +8,7 @@
  *  Credit given to Eric Roberts for his work on Better Sunrise/Sunset
  */
 definition(
-    name: "ZP Testing",
+    name: "ZP Master Mode Lighting",
     namespace: "zpriddy",
     author: "Zachary Priddy  me@zpriddy.com",
     description: "Sets the colors and brightness level of your Philips Hue lights to match your mood.",
@@ -232,7 +232,7 @@ def modeSettings(params)
 					["Daylight":"Daylight - Energize"],
 					["Warm White":"Warm White - Relax"],
 					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
-				input "m${n}_dayHue2Level", "number", title: "Set Dimmer To This Level (Group 2)", required: false
+				input "m${n}_dayHue2Level", "number", title: "Set Hue To This Level (Group 2)", required: false
 			}
 		}
 		section("Night Settings For ${name}", hideable: true, hidden: false)
@@ -268,7 +268,7 @@ def modeSettings(params)
 					["Daylight":"Daylight - Energize"],
 					["Warm White":"Warm White - Relax"],
 					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
-				input "m${n}_nightHue2Level", "number", title: "Set Dimmer To This Level (Group 2)", required: false
+				input "m${n}_nightHue2Level", "number", title: "Set Hue To This Level (Group 2)", required: false
 			}
 		}
 
@@ -590,7 +590,7 @@ def modeChnage(modeNumber)
 		log.debug "Changing lights for daytime"
 
 		state.lightsOff = settings."m${n}_dayLightsOff"
-		state.lightsOff = settings."m${n}_dayLightsOn"
+		state.lightsOn = settings."m${n}_dayLightsOn"
 		state.lightsDim1 = settings."m${n}_dayDim1"
 		state.lightsDim1Level = settings."m${n}_dayDim1Level"
 		state.lightsDim2 = settings."m${n}_dayDim2"
@@ -613,7 +613,7 @@ def modeChnage(modeNumber)
 		log.debug "Changing lights for night time"
 
 		state.lightsOff = settings."m${n}_nightLightsOff"
-		state.lightsOff = settings."m${n}_nightLightsOn"
+		state.lightsOn= settings."m${n}_nightLightsOn"
 		state.lightsDim1 = settings."m${n}_nightDim1"
 		state.lightsDim1Level = settings."m${n}_nightDim1Level"
 		state.lightsDim2 = settings."m${n}_nightDim2"
