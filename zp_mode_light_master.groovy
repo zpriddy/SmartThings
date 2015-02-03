@@ -11,7 +11,7 @@ definition(
     name: "ZP Master Mode Lighting",
     namespace: "zpriddy",
     author: "Zachary Priddy  me@zpriddy.com",
-    description: "Sets the colors and brightness level of your Philips Hue lights to match your mood.",
+    description: "Sets lights based on the mode of the system and time of day.",
     category: "SmartThings Labs",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/App-LightUpMyWorld.png",
 	iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/App-LightUpMyWorld@2x.png"
