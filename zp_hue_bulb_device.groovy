@@ -80,8 +80,10 @@ def parse(description) {
 
 // handle commands
 def on() {
-	parent.on(this)
+	//parent.on(this)
 	sendEvent(name: "switch", value: "on")
+	def level = device.latestValue("level") as Integer ?: 0
+	setLevel(level)
 }
 
 def off() {
@@ -108,12 +110,14 @@ def setLevel(percent) {
 	log.debug "Executing 'setLevel'"
 	parent.setLevel(this, percent)
 	sendEvent(name: "level", value: percent)
+	sendEvent(name: "transitiontime", value: 10)
 }
 
 def setSaturation(percent) {
 	log.debug "Executing 'setSaturation'"
 	parent.setSaturation(this, percent)
 	sendEvent(name: "saturation", value: percent)
+
 }
 
 def setHue(percent) {

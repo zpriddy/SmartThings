@@ -80,13 +80,17 @@ def parse(description) {
 
 // handle commands
 def on() {
-	parent.groupOn(this)
+	//parent.groupOn(this)
 	sendEvent(name: "switch", value: "on")
+	def level = device.latestValue("level") as Integer ?: 0
+	setLevel(level)
+
 }
 
 def off() {
 	parent.groupOff(this)
 	sendEvent(name: "switch", value: "off")
+	sendEvent(name: "transitiontime", value: 10)
 }
 
 def poll() {
@@ -108,6 +112,7 @@ def setLevel(percent) {
 	log.debug "Executing 'setLevel'"
 	parent.setGroupLevel(this, percent)
 	sendEvent(name: "level", value: percent)
+	sendEvent(name: "transitiontime", value: 10)
 }
 
 def setSaturation(percent) {

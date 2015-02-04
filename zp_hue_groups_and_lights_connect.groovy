@@ -654,7 +654,7 @@ def parse(childDevice, description) {
                         sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "saturation", value: Math.round(bulb.value.state.sat * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "hue", value: Math.min(Math.round(bulb.value.state.hue * 100 / 65535), 65535)])
-                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: Math.min(Math.round(bulb.value.state.transitiontime * 10 / 65535), 65535)])
+                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime * 10 ])
                     } 
                     else if (bulb.value.action) {
                     	log.debug "Found Group"
@@ -662,7 +662,7 @@ def parse(childDevice, description) {
                         sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.action.bri * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "saturation", value: Math.round(bulb.value.action.sat * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "hue", value: Math.min(Math.round(bulb.value.action.hue * 100 / 65535), 65535)])
-                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: Math.min(Math.round(bulb.value.action.transitiontime * 10 / 65535), 65535)])
+                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime * 10])
                     } 
                     else {
                         sendEvent(d.deviceNetworkId, [name: "switch", value: "off"])
@@ -699,7 +699,7 @@ def parse(childDevice, description) {
 								sendEvent(childDeviceNetworkId, [name: "hue", value: Math.min(Math.round(v * 100 / 65535), 65535)])
 								break
 							case "transitiontime":
-								sendEvent(d.deviceNetworkId, [name: "transitiontime", value: Math.min(Math.round(bulb.value.state.transitiontime * 10 / 65535), 65535)])
+								sendEvent(childDeviceNetworkId, [name: "transitiontime", value: v * 10])
 								break
 						}
 					}
@@ -727,7 +727,6 @@ def on(childDevice) {
 
 def groupOn(childDevice) {
 	def value = [on: true]
-    value.transitiontime = 100
 	log.debug "Executing 'on'"
 	put("groups/${getId(childDevice)}/action", value)
 }
@@ -750,13 +749,15 @@ def groupOff(childDevice) {
 def setLevel(childDevice, percent) {
 	log.debug "Executing 'setLevel'"
 	def level = Math.min(Math.round(percent * 255 / 100), 255)
-	put("lights/${getId(childDevice)}/state", [bri: level, on: percent > 0])
+	def value = [bri: level, on: percent > 0, transitiontime: 100]
+	put("lights/${getId(childDevice)}/state", value)
 }
 
 def setGroupLevel(childDevice, percent) {
 	log.debug "Executing 'setLevel'"
 	def level = Math.min(Math.round(percent * 255 / 100), 255)
-	put("groups/${getId(childDevice)}/action", [bri: level, on: percent > 0])
+	def value = [bri: level, on: percent > 0, transitiontime: 100]
+	put("groups/${getId(childDevice)}/action", value)
 }
 
 def setSaturation(childDevice, percent) {
