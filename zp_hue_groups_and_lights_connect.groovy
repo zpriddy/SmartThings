@@ -719,24 +719,33 @@ def parse(childDevice, description) {
 }
 
 def on(childDevice) {
+	def value = [on: true]
+    value.transitiontime = 100
 	log.debug "Executing 'on'"
-	put("lights/${getId(childDevice)}/state", [on: true])
+	put("lights/${getId(childDevice)}/state", value)
 }
 
 def groupOn(childDevice) {
+	def value = [on: true]
+    value.transitiontime = 100
 	log.debug "Executing 'on'"
-	put("groups/${getId(childDevice)}/action", [on: true])
+	put("groups/${getId(childDevice)}/action", value)
 }
 
 def off(childDevice) {
+	def value = [on: false]
+    value.transitiontime = 100
 	log.debug "Executing 'off'"
-	put("lights/${getId(childDevice)}/state", [on: false])
+	put("lights/${getId(childDevice)}/state", value)
 }
 
 def groupOff(childDevice) {
 	log.debug "Executing 'off'"
-	put("groups/${getId(childDevice)}/action", [on: false])
+    def value = [on: false]
+	value.transitiontime = 100
+	put("groups/${getId(childDevice)}/action", value)
 }
+
 
 def setLevel(childDevice, percent) {
 	log.debug "Executing 'setLevel'"
@@ -786,7 +795,7 @@ def setColor(childDevice, color) {
 	}
 
 	if (color.transitiontime != null){
-		value.transitiontime = Math.min(Math.round(color.transitiontime * 65535 / 10), 65535)
+		value.transitiontime = color.transitiontime * 10
 	}
 
 	if (color.switch) {
@@ -808,7 +817,7 @@ def setGroupColor(childDevice, color) {
 		value.on = value.bri > 0
 	}
 	if (color.transitiontime != null){
-		value.transitiontime = Math.min(Math.round(color.transitiontime * 65535 / 10), 65535)
+		value.transitiontime = color.transitiontime * 10
 	}
 
 	if (color.switch) {
@@ -925,4 +934,5 @@ def convertGroupListToMap() {
 		log.error "Caught error attempting to convert group list to map: $e"
 	}
 }
+
 

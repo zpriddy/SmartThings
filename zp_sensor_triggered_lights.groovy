@@ -49,7 +49,7 @@ def setupConfigure() {
 		"You can switch between two modes for each type. How many types " +
 		"do you have?"
 
-	def inputNumModeTypes = [
+	def inputNumOfActions = [
 		name: 			"numOfActions",
 		type: 			"number",
 		title: 			"How many Sensor - Switch actions?",
@@ -68,7 +68,7 @@ def setupConfigure() {
 	return dynamicPage(pageProperties) {
 		section("Number of Sensor Actions") {
 			paragraph modeHelp
-			input inputNumModeTypes
+			input inputNumOfActions
 		}
 		section("Hue Bulbs")
 		{
@@ -96,7 +96,7 @@ def setActionNames()
 
 	return dynamicPage(name: "setActionNames", title: "Set Action Names", nextPage: "setupActions"){
 		def sampleNames = [ "Front Door", "Back Door", "Living Room Motion", "Kitchen Motion",]
-		for (int n = 1; n <= numModeTypes; n++){
+		for (int n = 1; n <= numOfActions; n++){
 			section("Name for Action ${n}"){
 				input name: "a${n}_name", type: "text", tite: "Action Name", defaultValue: (settings."a${n}_name") ?  settings."a${n}_name" : sampleNames[n]?.value, required: true
 			}
@@ -125,13 +125,13 @@ def setupActions() {
 	]
 
 	return dynamicPage(pageProperties) {
-		for (int n = 1; n <= numModeTypes; n++) {
+		for (int n = 1; n <= numOfActions; n++) {
 			def name = settings."a${n}_name"
 
 			section()
 			{
 				
-				href(name: "actionSettings", page: "modeSettings?action=$n", title: "Settings for $name Mode", description: "Open Settings", state: "complete")
+				href(name: "actionSettings", page: "actionSettings?actionNumber=$n", title: "Settings for $name Mode", description: "Open Settings", state: "complete")
 			}
 
 		}
@@ -175,7 +175,6 @@ def actionSettings(params)
 	def textAutoChange =
 		"Do you want this mode to auto change to night/day settings on sunset/sunrise. If not it will only chnage when the mode changes."
 
-
 	def textOnSunsetHelp =
 		"These switches will turn on at sunset"
 
@@ -187,19 +186,33 @@ def actionSettings(params)
 
 	def textCustomValues =
 		"If you would like to set custom values for after event, enable this switch. Otherwise the lights will reset to the previous values"
+
 	def textTimeDelay = 
 		"This is the amount of time to wait before applying after event settings"
 
-	def n = params?.action
+	def textDifferentSettings = 
+		"Apply different settings for nightime?"
+
+	def n = params?.actionNumber
+	if(!n)
+	{
+		n = state.configNumber
+	}
+	state.configNumber = n 
+	log.debug n
+
 	def name = settings."a${n}_name"
 	def hueSettings = settings.hasHue
 
 	
 	dynamicPage(name: "actionSettings", title: "Set settings for ${name}"){
-		section("Trigger Settings For ${name}", hideable:false) 
+		section("Trigger Settings For ${name}", hideable:true, hidden:false) 
 		{
 			paragraph textActionModes
-			input "a${n}_mode", "mode", title: "Mode", multiple: true, required: true
+			input "a${n}_mode", "mode", title: "Modes", multiple: true, required: true
+
+			paragraph textDifferentSettings
+			input "a${n}_differentSettings", "boolean", title: "Different Settings for Night?", defaultValue: false, submitOnChange: true
 
 			paragraph textSelectSensor
 			input "a${n}_motion", "capability.motionSensor", title: "Motion Here", required: false, multiple: true
@@ -248,7 +261,7 @@ def actionSettings(params)
 				input "a${n}_afterEventCustomValues", "boolean", title: "Set custom values after event?", defaultValue: false, submitOnChange: true
 
 				paragraph textTimeDelay
-				input "a${n}_duration", "number", title: "Time Delay Seconds?", required: false
+				input "a${n}_durationDay", "number", title: "Time Delay Seconds?", required: false
 
 				if(settings."a${n}_afterEventCustomValues" == "true")
 				{
@@ -279,46 +292,72 @@ def actionSettings(params)
 			}
 		}
 
-		//submitOnChange: true
-
-/*
-		section("Night Settings For ${name}", hideable: true, hidden: false)
+		if(settings."a${n}_differentSettings" == "true")
 		{
-			paragraph textNightLightsOff
-			input "m${n}_nightLightsOff", "capability.switch", title: "Night Switches Off",  multiple: true, required: false
-			paragraph textNightLightsOn
-			input "m${n}_nightLightsOn", "capability.switch", title: "Night Switches On",  multiple: true, required: false
-			paragraph textNightDim
-			input "m${n}_nightDim1", "capability.switchLevel", title: "Night Dimmer Lights (Group 1)", multiple: true, required: false
-			input "m${n}_nightDim1Level", "number", title: "Set Dimmer To This Level (Group 1)", required: false
-			paragraph ""
-			input "m${n}_nightDim2", "capability.switchLevel", title: "Night Dimmer Lights (Group 2)", multiple: true, required: false
-			input "m${n}_nightDim2Level", "number", title: "Set Dimmer To This Level (Group 2)", required: false
-			
-			
-			if(hueSettings == "true")
+			section("${name} Settings For Event Action (Night)", hideable: true, hidden: false)
 			{
-				paragraph textNightHue
-				input "m${n}_nightHue1", "capability.switchLevel", title: "Night Hue Lights (Group 1)", multiple: true, required: false
-				input "m${n}_nightHue1Color", "enum", title: "Night Hue Color (Group 1)", required: false, multiple:false, options: [
-					["Soft White":"Soft White - Default"],
-					["White":"White - Concentrate"],
-					["Daylight":"Daylight - Energize"],
-					["Warm White":"Warm White - Relax"],
-					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
-				input "m${n}_nightHue1Level", "number", title: "Set Hue To This Level (Group 1)", required: false
-				paragraph ""
-				input "m${n}_nightHue2", "capability.switchLevel", title: "Night Hue Lights (Group 2)", multiple: true, required: false
-				input "m${n}_nightHue2Color", "enum", title: "Night Hue Color (Group 2)", required: false, multiple:false, options: [
-					["Soft White":"Soft White - Default"],
-					["White":"White - Concentrate"],
-					["Daylight":"Daylight - Energize"],
-					["Warm White":"Warm White - Relax"],
-					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
-				input "m${n}_nightHue2Level", "number", title: "Set Hue To This Level (Group 2)", required: false
+				paragraph textNightSwitchOff
+				input "a${n}_nightSwitchOff", "capability.switch", title: "Night Switches Off",  multiple: true, required: false
+				paragraph textNightSwitchOn
+				input "a${n}_nightSwitchOn", "capability.switch", title: "Night Switches On",  multiple: true, required: false
+				paragraph textNightDim
+				input "a${n}_nightDim", "capability.switchLevel", title: "Night Dimmer Lights", multiple: true, required: false
+				input "a${n}_nightDimLevel", "number", title: "Set Dimmer To This Level", required: false
+				
+				
+				
+				if(hueSettings == "true")
+				{
+					paragraph textNightHue
+					input "a${n}_nightHue", "capability.switchLevel", title: "Night Hue Lights", multiple: true, required: false
+					input "a${n}_nightHueColor", "enum", title: "Night Hue Color", required: false, multiple:false, options: [
+						["Soft White":"Soft White - Default"],
+						["White":"White - Concentrate"],
+						["Nightlight":"Nightlight - Energize"],
+						["Warm White":"Warm White - Relax"],
+						"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
+					input "a${n}_nightHueLevel", "number", title: "Set Hue To This Level", required: false
+					
+				}
+			}
+			section("${name} Settings For After Event Action (Night)", hideable: true, hidden: false)
+			{
+
+				if(settings."a${n}_afterEventEnable" == "true")
+				{
+
+					paragraph textTimeDelay
+					input "a${n}_durationNight", "number", title: "Time Delay Seconds?", required: false
+
+					if(settings."a${n}_afterEventCustomValues" == "true")
+					{
+						paragraph textNightSwitchOff
+						input "a${n}_nightAfterSwitchOff", "capability.switch", title: "Night Switches Off After Event",  multiple: true, required: false
+						paragraph textNightSwitchOn
+						input "a${n}_nightAfterSwitchOn", "capability.switch", title: "Night Switches On After Event",  multiple: true, required: false
+						paragraph textNightDim
+						input "a${n}_nightAfterDim", "capability.switchLevel", title: "Night Dimmer Lights After Event", multiple: true, required: false
+						input "a${n}_nightAfterDimLevel", "number", title: "Set Dimmer To This Level After Event", required: false
+						
+						
+						
+						if(hueSettings == "true")
+						{
+							paragraph textNightHue
+							input "a${n}_nightAfterHue", "capability.switchLevel", title: "Night Hue Lights After Event", multiple: true, required: false
+							input "a${n}_nightAfterHueColor", "enum", title: "Night Hue Color After Event", required: false, multiple:false, options: [
+								["Soft White":"Soft White - Default"],
+								["White":"White - Concentrate"],
+								["Daylight":"Daylight - Energize"],
+								["Warm White":"Warm White - Relax"],
+								"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
+							input "a${n}_nightAfterHueLevel", "number", title: "Set Hue To This Level After Event", required: false
+							
+						}
+					}
+				}
 			}
 		}
-		*/
 
 		section("Help..", hideable: true, hidden: true)
 		{
@@ -359,7 +398,7 @@ def initialize() {
 
     state.numModeTypes = numModeTypes
 
-    scheduleSunriseSunset()
+    //scheduleSunriseSunset()
     subscribeToEvents()
     TRACE("End init")
 }
@@ -367,4 +406,9 @@ def initialize() {
 def subscribeToEvents()
 {
 	subscribe(location, modeChangeHandler)
+}
+
+def TRACE(msg) {
+	log.debug msg
+    //log.debug("state $state")
 }

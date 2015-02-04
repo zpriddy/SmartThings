@@ -55,7 +55,7 @@ metadata {
 	}
 
 	main(["switch"])
-	details(["switch", "levelSliderControl", "rgbSelector", "refresh"])
+	details(["switch", "levelSliderControl", "rgbSelector", "refresh","transitiontime"])
 
 }
 

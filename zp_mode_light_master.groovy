@@ -11,7 +11,7 @@ definition(
     name: "ZP Master Mode Lighting",
     namespace: "zpriddy",
     author: "Zachary Priddy  me@zpriddy.com",
-    description: "Sets lights based on the mode of the system and time of day.",
+    description: "Sets the colors and brightness level of your Philips Hue lights to match your mood.",
     category: "SmartThings Labs",
     iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/App-LightUpMyWorld.png",
 	iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/App-LightUpMyWorld@2x.png"
@@ -314,6 +314,8 @@ def initialize() {
     scheduleSunriseSunset()
     subscribeToEvents()
     TRACE("End init")
+    
+    state.transitiontime = 10
 }
 
 def subscribeToEvents()
@@ -574,6 +576,7 @@ def modeAutoChange()
 		{
 			if(autoChnage == "true")
 			{
+            	state.transitiontime = 600
 				modeChnage(n)
 			}
 		}
@@ -583,6 +586,8 @@ def modeAutoChange()
 
 def modeChnage(modeNumber)
 {
+	state.transitiontime = 10
+
 	def n = modeNumber
 
 	if(isDayTime())
@@ -667,10 +672,13 @@ def modeChnage(modeNumber)
 		def hueColor  = getHueColor(state.hue1Color)
 		def hueSaturation = getHueSat(state.hue1Color)
 		def hueLevel = state.hue1Level
+        
+        int tt = state.transitiontime 
+        log.debug tt
 
 		state.hue1.each{
 			hue ->
-			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, switch: "on"])
+			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt])
 			pause(350)
 
 		}
@@ -681,11 +689,14 @@ def modeChnage(modeNumber)
 
 		state.hue2.each{
 			hue ->
-			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, switch: "on"])
+			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt])
 			pause(350)
 
 		}
 	}
+    
+    
+    state.transitiontime = 10
 
 	log.debug "Finished changing lights"
 
