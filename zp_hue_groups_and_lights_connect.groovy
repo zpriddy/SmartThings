@@ -690,13 +690,16 @@ def parse(childDevice, description) {
 		}
 		else
 		{ //put response
+			def hsl = [:]
 			body.each { payload ->
+				log.debug $payload
 				if (payload?.success)
 				{
 					def childDeviceNetworkId = app.id + "/"
 					def eventType
 					body?.success[0].each { k,v ->
 						childDeviceNetworkId += k.split("/")[2]
+						if (!hsl[childDeviceNetworkId]) hsl[childDeviceNetworkId] = [:]
 						eventType = k.split("/")[4]
 						log.debug "eventType: $eventType"
 						switch(eventType) {
@@ -707,13 +710,10 @@ def parse(childDevice, description) {
 								sendEvent(childDeviceNetworkId, [name: "level", value: Math.round(v * 100 / 255)])
 								break
 							case "sat":
-								sendEvent(childDeviceNetworkId, [name: "saturation", value: Math.round(v * 100 / 255)])
+								hsl[childDeviceNetworkId].saturation = Math.round(v * 100 / 255) as int
 								break
 							case "hue":
-								sendEvent(childDeviceNetworkId, [name: "hue", value: Math.min(Math.round(v * 100 / 65535), 65535)])
-								break
-							case "transitiontime":
-								sendEvent(childDeviceNetworkId, [name: "transitiontime", value: v * 10])
+								hsl[childDeviceNetworkId].hue = Math.min(Math.round(v * 100 / 65535), 65535) as int
 								break
 						}
 					}
@@ -725,6 +725,7 @@ def parse(childDevice, description) {
 				}
 
 			}
+
 			hsl.each { childDeviceNetworkId, hueSat ->
 				log.debug "hue: ${hueSat.hue}, sat: ${hueSat.saturation}"
 				if (hueSat.hue && hueSat.saturation) {
@@ -733,7 +734,7 @@ def parse(childDevice, description) {
 					sendEvent(hsl.childDeviceNetworkId, [name: "color", value: hex])
 				}
 			}
-			
+
 		}
 	} else {
 		log.debug "parse - got something other than headers,body..."
