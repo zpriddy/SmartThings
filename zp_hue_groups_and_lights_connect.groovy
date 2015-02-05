@@ -122,7 +122,7 @@ def bridgeLinking()
 	int linkRefreshcount = !state.linkRefreshcount ? 0 : state.linkRefreshcount as int
 	state.linkRefreshcount = linkRefreshcount + 1
 	def refreshInterval = 3
-
+	//state.username = "5e229bec-02cf-400f-808f-2b6b7afe03e4-0"
 	def nextPage = ""
 	def title = "Linking with your Hue"
 	def paragraphText = "Press the button on your Hue Bridge to setup a link."
@@ -201,7 +201,7 @@ private discoverBridges()
 
 private sendDeveloperReq()
 {
-	def token = app.id
+	def token = "5e229bec-02cf-400f-808f-2b6b7afe03e4" //app.id
 	def body = """{"devicetype":"$token-0","username":"$token-0"}"""
 	def length = body.getBytes().size().toString()
 	sendHubCommand(new physicalgraph.device.HubAction("""POST /api HTTP/1.1
@@ -255,6 +255,7 @@ Map bridgesDiscovered() {
 
 Map bulbsDiscovered() {
 	def bulbs =  getHueBulbs()
+	log.debug bulbs
 	def map = [:]
 	if (bulbs instanceof java.util.Map) {
 		bulbs.each {
@@ -274,17 +275,18 @@ Map bulbsDiscovered() {
 
 Map groupsDiscovered() {
 	def groups =  getHueGroups()
+	log.debug groups
 	def map = [:]
 	if (groups instanceof java.util.Map) {
 		groups.each {
 			def value = "${it?.value?.name}"
-			def key = app.id +"/"+ it?.value?.id
+			def key = app.id +"/"+ it?.value?.id + "g"
 			map["${key}"] = value
 		}
 	} else { //backwards compatable
 		groups.each {
 			def value = "${it?.name}"
-			def key = app.id +"/"+ it?.id
+			def key = app.id +"/"+ it?.id + "g"
 			map["${key}"] = value
 		}
 	}
@@ -329,6 +331,9 @@ def addBulbs() {
             	//backwards compatable
 				newHueBulb = bulbs.find { (app.id + "/" + it.id) == dni }
 				d = addChildDevice("zpriddy", "ZP Hue Bulb", dni, newHueBulb?.hub, ["label":newHueBulb?.name])
+				if (newHueBulb?.type?.equalsIgnoreCase("Dimmable light") && d.typeName == "ZP Hue Bulb") {
+					d.setDeviceType("Hue Lux Bulb")
+				}
 			}
 
 			log.debug "created ${d.displayName} with id $dni"
@@ -349,22 +354,32 @@ def addGroups() {
 	log.debug "ADDING GROUPS! ??"
 	def groups = getHueGroups()
 	selectedGroups.each { dni ->
-		def d //= getChildDevice(dni)
-		//if(!d) {
+		log.debug dni
+		def groupID =  dni
+		log.debug groupID
+		def d = getChildDevice(groupID)
+		if(!d) 
+		{
 			def newHueGroup
-			if (groups instanceof java.util.Map) {
-				newHueGroup = groups.find { (app.id + "/g/" + it.value.id) == dni }
-				d = addChildDevice("zpriddy", "ZP Hue Group", dni, newHueGroup?.hub, ["label":newHueGroup?.name])
-			//} else { //backwards compatable
+			if (groups instanceof java.util.Map) 
+			{
+
+				newHueGroup = groups.find { (app.id + "/" + it.value.id + "g") == groupID }
+				log.debug newHueGroup
+				d = addChildDevice("zpriddy", "ZP Hue Group", groupID, newHueGroup?.hub, ["label":newHueGroup?.name])
+			}// else { //backwards compatable
 			//	newHueGroup = groups.find { (app.id + "/g/" + it.id) == dni }
 				//d = addChildDevice("zpriddy", "ZP Hue Group", dni, newHueGroup?.hub, ["label":newHueGroup?.name])
-			}
 
-			log.debug "created ${d.displayName} with id $dni"
+			log.debug "created ${d.displayName} with id $groupID"
 			d.refresh()
-		//} else {
-		//	log.debug "found ${d.displayName} with id $dni already exists"
-		//}
+		}
+
+			
+		else 
+		{
+			log.debug "found ${d.displayName} with id $groupID already exists"
+		}
 	}
 }
 
@@ -392,13 +407,12 @@ def addBridge() {
 
 
 def locationHandler(evt) {
+	log.debug "Loaction Handler"
 	def description = evt.description
 	def hub = evt?.hubId
 
 	def parsedEvent = parseEventMessage(description)
 	parsedEvent << ["hub":hub]
-
-	log.debug "Parsed Event: $parsedEvent"
 
 	if (parsedEvent?.ssdpTerm?.contains("urn:schemas-upnp-org:device:basic:1"))
 	{ //SSDP DISCOVERY EVENTS
@@ -417,7 +431,7 @@ def locationHandler(evt) {
 			def d = bridges."${parsedEvent.ssdpUSN.toString()}"
 			def host = parsedEvent.ip + ":" + parsedEvent.port
             
- 			if(d.ip != parsedEvent.ip || d.port != parsedEvent.port  || host != state.hostname) {  //|| host != state.hostname
+ 			if(d.ip != parsedEvent.ip || d.port != parsedEvent.port || host != state.hostname) {
 
  
  				log.debug "Device's port or ip changed..."
@@ -472,7 +486,7 @@ def locationHandler(evt) {
 				if (body?.success?.username)
 				{
 					state.username = body.success.username[0]
-					
+					//state.username = "5e229bec-02cf-400f-808f-2b6b7afe03e4-0"
 					state.hostname = selectedHue
 				}
 			}
@@ -542,6 +556,7 @@ private def parseEventMessage(Map event) {
 }
 
 private def parseEventMessage(String description) {
+	log.debug "Parse Event Message"
 	def event = [:]
 	def parts = description.split(',')
 	parts.each { part ->
@@ -710,6 +725,15 @@ def parse(childDevice, description) {
 				}
 
 			}
+			hsl.each { childDeviceNetworkId, hueSat ->
+				log.debug "hue: ${hueSat.hue}, sat: ${hueSat.saturation}"
+				if (hueSat.hue && hueSat.saturation) {
+					def hex = colorUtil.hslToHex(hueSat.hue, hueSat.saturation)
+					log.debug "sending ${hueSat} for ${childDeviceNetworkId} as ${hex}"
+					sendEvent(hsl.childDeviceNetworkId, [name: "color", value: hex])
+				}
+			}
+			
 		}
 	} else {
 		log.debug "parse - got something other than headers,body..."
