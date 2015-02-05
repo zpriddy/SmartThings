@@ -472,8 +472,7 @@ def locationHandler(evt) {
 				if (body?.success?.username)
 				{
 					state.username = body.success.username[0]
-					//"e41d5757-05bc-415e-9b84-fdc748f97230-0"
-					//body.success.username[0]
+					
 					state.hostname = selectedHue
 				}
 			}
@@ -654,7 +653,7 @@ def parse(childDevice, description) {
                         sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "saturation", value: Math.round(bulb.value.state.sat * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "hue", value: Math.min(Math.round(bulb.value.state.hue * 100 / 65535), 65535)])
-                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime * 10 ])
+                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime /10 ])
                     } 
                     else if (bulb.value.action) {
                     	log.debug "Found Group"
@@ -662,7 +661,7 @@ def parse(childDevice, description) {
                         sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.action.bri * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "saturation", value: Math.round(bulb.value.action.sat * 100 / 255)])
                         sendEvent(d.deviceNetworkId, [name: "hue", value: Math.min(Math.round(bulb.value.action.hue * 100 / 65535), 65535)])
-                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime * 10])
+                        sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.action?.transitiontime / 10])
                     } 
                     else {
                         sendEvent(d.deviceNetworkId, [name: "switch", value: "off"])
@@ -718,70 +717,71 @@ def parse(childDevice, description) {
 	}
 }
 
-def on(childDevice) {
+def on(childDevice, transitiontime) {
 	def value = [on: true]
-    value.transitiontime = 100
+    value.transitiontime = transitiontime * 10
 	log.debug "Executing 'on'"
 	put("lights/${getId(childDevice)}/state", value)
 }
 
-def groupOn(childDevice) {
+def groupOn(childDevice, transitiontime) {
 	def value = [on: true]
+	value.transitiontime = transitiontime * 10
 	log.debug "Executing 'on'"
 	put("groups/${getId(childDevice)}/action", value)
 }
 
-def off(childDevice) {
+def off(childDevice, transitiontime) {
 	def value = [on: false]
-    value.transitiontime = 100
+    value.transitiontime = transitiontime * 10
 	log.debug "Executing 'off'"
 	put("lights/${getId(childDevice)}/state", value)
 }
 
-def groupOff(childDevice) {
+def groupOff(childDevice, transitiontime) {
 	log.debug "Executing 'off'"
     def value = [on: false]
-	value.transitiontime = 100
+	value.transitiontime = transitiontime * 10
 	put("groups/${getId(childDevice)}/action", value)
 }
 
 
-def setLevel(childDevice, percent) {
+def setLevel(childDevice, percent, transitiontime) {
 	log.debug "Executing 'setLevel'"
 	def level = Math.min(Math.round(percent * 255 / 100), 255)
-	def value = [bri: level, on: percent > 0, transitiontime: 100]
+	def value = [bri: level, on: percent > 0, transitiontime: transitiontime * 10]
 	put("lights/${getId(childDevice)}/state", value)
 }
 
-def setGroupLevel(childDevice, percent) {
+def setGroupLevel(childDevice, percent, transitiontime) {
 	log.debug "Executing 'setLevel'"
 	def level = Math.min(Math.round(percent * 255 / 100), 255)
-	def value = [bri: level, on: percent > 0, transitiontime: 100]
+	def value = [bri: level, on: percent > 0, transitiontime: transitiontime * 10]
 	put("groups/${getId(childDevice)}/action", value)
 }
 
-def setSaturation(childDevice, percent) {
+def setSaturation(childDevice, percent, transitiontime) {
 	log.debug "Executing 'setSaturation($percent)'"
 	def level = Math.min(Math.round(percent * 255 / 100), 255)
-	put("lights/${getId(childDevice)}/state", [sat: level])
+	put("lights/${getId(childDevice)}/state", [sat: level, transitiontime: transitiontime * 10])
 }
 
-def setGroupSaturation(childDevice, percent) {
+def setGroupSaturation(childDevice, percent, transitiontime) {
 	log.debug "Executing 'setSaturation($percent)'"
 	def level = Math.min(Math.round(percent * 255 / 100), 255)
-	put("groups/${getId(childDevice)}/action", [sat: level])
+	put("groups/${getId(childDevice)}/action", [sat: level, transitiontime: transitiontime * 10])
 }
 
-def setHue(childDevice, percent) {
+def setHue(childDevice, percent, transitiontime) {
 	log.debug "Executing 'setHue($percent)'"
 	def level =	Math.min(Math.round(percent * 65535 / 100), 65535)
-	put("lights/${getId(childDevice)}/state", [hue: level])
+	put("lights/${getId(childDevice)}/state", [hue: level, transitiontime: transitiontime * 10])
 }
 
-def setGroupHue(childDevice, percent) {
+def setGroupHue(childDevice, percent, transitiontime) {
 	log.debug "Executing 'setHue($percent)'"
 	def level =	Math.min(Math.round(percent * 65535 / 100), 65535)
-	put("groups/${getId(childDevice)}/action", [hue: level])
+	put("groups/${getId(childDevice)}/action", [hue: level, transitiontime: transitiontime * 10])
 }
 
 def setColor(childDevice, color) {
