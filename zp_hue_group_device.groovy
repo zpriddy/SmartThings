@@ -14,6 +14,7 @@ metadata {
 		capability "Polling"
 		capability "Refresh"
 		capability "Sensor"
+		capability "Test Capability" //Hope to replace with Transistion Time
 
 		command "setAdjustedColor"
 	}
@@ -79,18 +80,34 @@ def parse(description) {
 }
 
 // handle commands
-def on() {
-	//parent.groupOn(this)
+def on() 
+{
+	def transitiontime = 4
+	parent.groupOn(this, 4)
 	sendEvent(name: "switch", value: "on")
-	def level = device.latestValue("level") as Integer ?: 0
-	setLevel(level)
-
+	sendEvent(name: "transitiontime", value: transitiontime)
 }
 
-def off() {
-	parent.groupOff(this)
+def on(transitiontime)
+{
+	parent.groupOff(this, transitiontime)
 	sendEvent(name: "switch", value: "off")
-	sendEvent(name: "transitiontime", value: 10)
+	sendEvent(name: "transitiontime", value: transitiontime)
+}
+
+def off() 
+{
+	def transitiontime = 4
+	parent.groupOff(this, transitiontime)
+	sendEvent(name: "switch", value: "off")
+	sendEvent(name: "transitiontime", value: transitiontime)
+}
+
+def off(transitiontime)
+{
+	parent.groupOff(this, transitiontime)
+	sendEvent(name: "switch", value: "off")
+	sendEvent(name: "transitiontime", value: transitiontime)
 }
 
 def poll() {
@@ -108,23 +125,54 @@ def nextLevel() {
 	setLevel(level)
 }
 
-def setLevel(percent) {
+def setLevel(percent) 
+{
+	def transitiontime = 4
 	log.debug "Executing 'setLevel'"
-	parent.setGroupLevel(this, percent)
+	parent.setGroupLevel(this, percent, transitiontime)
 	sendEvent(name: "level", value: percent)
-	sendEvent(name: "transitiontime", value: 10)
+	sendEvent(name: "transitiontime", value: transitiontime)
+
+}
+def setLevel(percent, transitiontime) 
+{
+	log.debug "Executing 'setLevel'"
+	parent.setGroupLevel(this, percent, transitiontime)
+	sendEvent(name: "level", value: percent)
+	sendEvent(name: "transitiontime", value: transitiontime)
 }
 
-def setSaturation(percent) {
+def setSaturation(percent) 
+{
+	def transitiontime = 4
 	log.debug "Executing 'setSaturation'"
-	parent.setGroupSaturation(this, percent)
+	parent.setGroupSaturation(this, percent, transitiontime)
 	sendEvent(name: "saturation", value: percent)
+	sendEvent(name: "transitiontime", value: transitiontime)
+}
+def setSaturation(percent, transitiontime) 
+{
+	log.debug "Executing 'setSaturation'"
+	parent.setGroupSaturation(this, percent, transitiontime)
+	sendEvent(name: "saturation", value: percent)
+	sendEvent(name: "transitiontime", value: transitiontime)
 }
 
-def setHue(percent) {
+def setHue(percent) 
+{
+	def transitiontime = 4
 	log.debug "Executing 'setHue'"
-	parent.setGroupHue(this, percent)
+	parent.setGroupHue(this, percent, transitiontime)
 	sendEvent(name: "hue", value: percent)
+	sendEvent(name: "transitiontime", value: transitiontime)
+}
+
+def setHue(percent, transitiontime) 
+{
+	log.debug "Executing 'setHue'"
+	parent.setGroupHue(this, percent, transitiontime)
+	sendEvent(name: "hue", value: percent)
+	sendEvent(name: "transitiontime", value: transitiontime)
 }
 
 def setColor(value) {
@@ -132,23 +180,30 @@ def setColor(value) {
 	parent.setGroupColor(this, value)
 
 	// TODO: convert hue and saturation to hex and just send a color event
-	if(value.transitiontime){
+	if(value.transitiontime)
+	{
 		snedEvent(name: "transitiontime", value: value.transitiontime)
 	}
-	if (value.hue) {
-		sendEvent(name: "hue", value: value.hue)
+	else
+	{
+		snedEvent(name: "transitiontime", value: 4)
 	}
-	if (value.saturation) {
-		sendEvent(name: "saturation", value: value.saturation)
-	}
-	if (value.hex) {
+	if (value.hex) 
+	{
 		sendEvent(name: "color", value: value.hex)
+	} 
+	else if (value.hue && value.saturation) 
+	{
+		def hex = colorUtil.hslToHex(value.hue, value.saturation)
+		sendEvent(name: "color", value: hex)
 	}
 
-	if (value.level) {
+	if (value.level) 
+	{
 		sendEvent(name: "level", value: value.level)
 	}
-	if (value.switch) {
+	if (value.switch) 
+	{
 		sendEvent(name: "switch", value: value.switch)
 	}
 }
@@ -186,5 +241,7 @@ def adjustOutgoingHue(percent) {
 	log.info "percent: $percent, adjusted: $adjusted"
 	adjusted
 }
+
+
 
 
