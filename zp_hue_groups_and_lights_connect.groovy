@@ -21,6 +21,7 @@ preferences {
 }
 
 def installed() {
+	state.clear()
 	//log.debug "Installed with settings: ${settings}"
 	initialize()
 
@@ -122,7 +123,6 @@ def bridgeLinking()
 	int linkRefreshcount = !state.linkRefreshcount ? 0 : state.linkRefreshcount as int
 	state.linkRefreshcount = linkRefreshcount + 1
 	def refreshInterval = 3
-	//state.username = "5e229bec-02cf-400f-808f-2b6b7afe03e4-0"
 	def nextPage = ""
 	def title = "Linking with your Hue"
 	def paragraphText = "Press the button on your Hue Bridge to setup a link."
@@ -132,7 +132,6 @@ def bridgeLinking()
 		paragraphText = "Linking to your hub was a success! Please click 'Next'!"
 	}
 
-	//state.username = "e41d5757-05bc-415e-9b84-fdc748f97230-0"
 	
 	if((linkRefreshcount % 2) == 0 && !state.username) {
 		sendDeveloperReq()
@@ -323,7 +322,7 @@ def addBulbs() {
 			if (bulbs instanceof java.util.Map) {
 				newHueBulb = bulbs.find { (app.id + "/" + it.value.id) == dni }
 				if (newHueBulb?.value?.type?.equalsIgnoreCase("Dimmable light")) {
-					d = addChildDevice("smartthings", "Hue Lux Bulb", dni, newHueBulb?.value.hub, ["label":newHueBulb?.value.name])
+					d = addChildDevice("zpriddy", "Hue Lux Bulb", dni, newHueBulb?.value.hub, ["label":newHueBulb?.value.name])
 				} else {
 					d = addChildDevice("zpriddy", "ZP Hue Bulb", dni, newHueBulb?.value.hub, ["label":newHueBulb?.value.name])
 				}
@@ -331,9 +330,6 @@ def addBulbs() {
             	//backwards compatable
 				newHueBulb = bulbs.find { (app.id + "/" + it.id) == dni }
 				d = addChildDevice("zpriddy", "ZP Hue Bulb", dni, newHueBulb?.hub, ["label":newHueBulb?.name])
-				if (newHueBulb?.type?.equalsIgnoreCase("Dimmable light") && d.typeName == "ZP Hue Bulb") {
-					d.setDeviceType("Hue Lux Bulb")
-				}
 			}
 
 			log.debug "created ${d.displayName} with id $dni"
@@ -342,13 +338,15 @@ def addBulbs() {
 			log.debug "found ${d.displayName} with id $dni already exists, type: '$d.typeName'"
 			if (bulbs instanceof java.util.Map) {
             	def newHueBulb = bulbs.find { (app.id + "/" + it.value.id) == dni }
-				if (newHueBulb?.value?.type?.equalsIgnoreCase("Dimmable light") && d.typeName == "ZP Hue Bulb") {
+				if (newHueBulb?.value?.type?.equalsIgnoreCase("Dimmable light") && d.typeName == "Hue Bulb") {
 					d.setDeviceType("Hue Lux Bulb")
 				}
 			}
 		}
 	}
 }
+
+
 
 def addGroups() {
 	log.debug "ADDING GROUPS! ??"
@@ -366,7 +364,7 @@ def addGroups() {
 
 				newHueGroup = groups.find { (app.id + "/" + it.value.id + "g") == groupID }
 				log.debug newHueGroup
-				d = addChildDevice("zpriddy", "ZP Hue Group", groupID, newHueGroup?.hub, ["label":newHueGroup?.name])
+				d = addChildDevice("zpriddy", "ZP Hue Group", groupID, newHueGroup?.value.hub, ["label":newHueGroup?.value.name])
 			}// else { //backwards compatable
 			//	newHueGroup = groups.find { (app.id + "/g/" + it.id) == dni }
 				//d = addChildDevice("zpriddy", "ZP Hue Group", dni, newHueGroup?.hub, ["label":newHueGroup?.name])
@@ -486,7 +484,6 @@ def locationHandler(evt) {
 				if (body?.success?.username)
 				{
 					state.username = body.success.username[0]
-					//state.username = "5e229bec-02cf-400f-808f-2b6b7afe03e4-0"
 					state.hostname = selectedHue
 				}
 			}
@@ -960,5 +957,6 @@ def convertGroupListToMap() {
 		log.error "Caught error attempting to convert group list to map: $e"
 	}
 }
+
 
 
