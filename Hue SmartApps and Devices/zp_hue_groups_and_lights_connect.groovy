@@ -21,7 +21,7 @@ preferences {
 }
 
 def installed() {
-	state.clear()
+	//state.clear()
 	//log.debug "Installed with settings: ${settings}"
 	initialize()
 
@@ -315,6 +315,8 @@ def getVerifiedHueBridges()
 def addBulbs() {
 
 	def bulbs = getHueBulbs()
+	log.debug "*************************"
+	log.debug bulbs
 	selectedBulbs.each { dni ->
 		def d = getChildDevice(dni)
 		if(!d) {
@@ -324,6 +326,8 @@ def addBulbs() {
 				if (newHueBulb?.value?.type?.equalsIgnoreCase("Dimmable light")) {
 					d = addChildDevice("zpriddy", "Hue Lux Bulb", dni, newHueBulb?.value.hub, ["label":newHueBulb?.value.name])
 				} else {
+					log.debug "ADDING HERE!!!!"
+					log.debug d
 					d = addChildDevice("zpriddy", "ZP Hue Bulb", dni, newHueBulb?.value.hub, ["label":newHueBulb?.value.name])
 				}
 			} else { 
