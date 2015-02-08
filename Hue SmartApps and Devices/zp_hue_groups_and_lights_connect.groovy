@@ -200,7 +200,7 @@ private discoverBridges()
 
 private sendDeveloperReq()
 {
-	def token = "5e229bec-02cf-400f-808f-2b6b7afe03e4" //app.id
+	def token = app.id
 	def body = """{"devicetype":"$token-0","username":"$token-0"}"""
 	def length = body.getBytes().size().toString()
 	sendHubCommand(new physicalgraph.device.HubAction("""POST /api HTTP/1.1
@@ -484,6 +484,7 @@ def locationHandler(evt) {
 				if (body?.success?.username)
 				{
 					state.username = body.success.username[0]
+				
 					state.hostname = selectedHue
 				}
 			}
@@ -739,15 +740,15 @@ def parse(childDevice, description) {
 	}
 }
 
-def on(childDevice, transitiontime) {
-	def value = [on: true]
+def on(childDevice, transitiontime, level) {
+	def value = [on: true, level: level]
     value.transitiontime = transitiontime * 10
 	log.debug "Executing 'on'"
 	put("lights/${getId(childDevice)}/state", value)
 }
 
-def groupOn(childDevice, transitiontime) {
-	def value = [on: true]
+def groupOn(childDevice, transitiontime, level) {
+	def value = [on: true, level: level]
 	value.transitiontime = transitiontime * 10
 	log.debug "Executing 'on'"
 	put("groups/${getId(childDevice)}/action", value)

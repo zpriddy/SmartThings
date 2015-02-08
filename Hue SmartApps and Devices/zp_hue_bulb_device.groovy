@@ -81,15 +81,17 @@ def parse(description) {
 // handle commands
 def on() 
 {
+	def level = device.currentValue("level")
 	def transitiontime = 4
-	parent.on(this, 4)
+	parent.on(this, 4, level)
 	sendEvent(name: "switch", value: "on")
 	sendEvent(name: "transitiontime", value: transitiontime)
 }
 
 def on(transitiontime)
 {
-	parent.on(this, transitiontime)
+	def level = device.currentValue("level")
+	parent.on(this, transitiontime, level)
 	sendEvent(name: "switch", value: "off")
 	sendEvent(name: "transitiontime", value: transitiontime)
 }
