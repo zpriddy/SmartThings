@@ -159,6 +159,10 @@ def actionSettings(params)
 
 	dynamicPage(name: "actionSettings", title: "Set settings for ${name}"){
 		def anythingSet = anythingSet()
+		section("Activate these setting for the floowing modes")
+		{
+			input "a${n}_mode", "mode", title: "Mode", required: true, multiple: true
+		}
 		if (anythingSet) 
 		{
 
@@ -214,9 +218,9 @@ def actionSettings(params)
 
 			input "a${n}_durationDay", "number", title: "How Long to apply these settings? (seconds)", required: false
 
-			input "a${n}_resetAfterDelay", "boolean", title: "Set back to orginal settings after delay", defaultValue: true, submitOnChange: true
+			input "a${n}_resetAfterDelayDay", "boolean", title: "Set back to orginal settings after delay", defaultValue: true, submitOnChange: true
 
-			if(settings."a${n}_resetAfterDelay" == "false")
+			if(settings."a${n}_resetAfterDelayDay" == "false")
 			{
 				input "a${n}_dayDimmerLevelAfter", "number", title: "Set Dimmer To This Level", required: false
 				if(hasHue == "true")
@@ -252,9 +256,9 @@ def actionSettings(params)
 
 				input "a${n}_durationNight", "number", title: "How Long to apply these settings? (seconds)", required: false
 
-				input "a${n}_resetAfterDelay", "boolean", title: "Set back to orginal settings after delay", defaultValue: true, submitOnChange: true
+				input "a${n}_resetAfterDelayNight", "boolean", title: "Set back to orginal settings after delay", defaultValue: true, submitOnChange: true
 
-				if(settings."a${n}_resetAfterDelay" == "false")
+				if(settings."a${n}_resetAfterDelayNight" == "false")
 				{
 					input "a${n}_nightDimmerLevelAfter", "number", title: "Set Dimmer To This Level", required: false
 					if(hasHue == "true")
@@ -298,6 +302,12 @@ private ifSet(Map options, String name, String capability) {
 	}
 }
 
+def eventHandler(evt) {
+	log.debug "EVENT HAPPENED"
+	actionHandler(1)
+	log.debug state.endDelay
+	}
+
 //***********************************************************************************
 // Installation Functions
 //***********************************************************************************
@@ -312,15 +322,20 @@ def updated() {
 	log.debug "Updated with settings: ${settings}"
 
 	unsubscribe()
+	unschedule()
 	initialize()
-	subscribeToEvents()
+
+	log.debug "Installed with settings: ${settings}"
 }
 
 def initialize() {
 	// TODO: subscribe to attributes, devices, locations, etc.
 	TRACE("initialize()")
+	schedule("* * * * * ?", resetLights)
 
     state.installed = true
+    state.endDelay = [:]
+    state.previous = [:]
 
     if (settings.zipCode == null) {
     	settings.zipCode = location.zipCode
@@ -335,11 +350,393 @@ def initialize() {
 
 def subscribeToEvents()
 {
-	subscribe(location, modeChangeHandler)
+	for (int n = 1; n <= numOfActions; n++)
+	{
+		log.debug "N = $n"
+		subscribe(settings."a${n}_contact", "contact.open", eventHandler)
+		subscribe(settings."a${n}_contactClosed", "contact.closed", eventHandler)
+		subscribe(settings."a${n}_acceleration", "acceleration.active", eventHandler)
+		subscribe(settings."a${n}_motion", "motion.active", motionEventHandler)
+		subscribe(settings."a${n}_mySwitch", "switch.on", eventHandler)
+		subscribe(settings."a${n}_mySwitchOff", "switch.off", eventHandler)
+		subscribe(settings."a${n}_arrivalPresence", "presence.present", eventHandler)
+		subscribe(settings."a${n}_departurePresence", "presence.not present", eventHandler)
+		subscribe(settings."a${n}_smoke", "smoke.detected", eventHandler)
+		subscribe(settings."a${n}_smoke", "smoke.tested", eventHandler)
+		subscribe(settings."a${n}_smoke", "carbonMonoxide.detected", eventHandler)
+		subscribe(settings."a${n}_water", "water.wet", eventHandler)
+		subscribe(settings."a${n}_button1", "button.pushed", eventHandler)
+		subscribe(app, eventHandler)
+
+	}
+	//subscribe(location, modeChangeHandler)
+}
+
+def motionEventHandler(evt)
+{
+	log.debug "Motion Event Triggered"
+
+	for (int n = 1; n <= numOfActions; n++)
+	{
+		def actionModes = settings."a${n}_mode"
+
+		if(location.mode in actionModes)
+		{
+
+			def actionSensors = settings."a${n}_motion"
+
+			if(evt.deviceId in actionSensors?.id )
+			{
+				log.debug "Fire on this action!"
+				actionHandler(n)
+			}
+		}
+	}
+}
+
+private actionHandler(actionNumber)
+{
+	//runIn(10, resetLights)
+	log.debug "Action Number = $actionNumber"
+	if(isDayTime())
+	{
+		// Settings for daytime
+		def aTimeNow = now()
+		def aDelay = settings."a${actionNumber}_durationDay"
+		log.debug "Delay: $aDelay"
+		log.debug "Now: $aTimeNow"
+
+		def endDelay = aTimeNow + (aDelay * 1000)
+		state."a${actionNumber}_endDelay" = endDelay
+		log.debug "Delay End: $endDelay"
+
+
+
+		def aDimmers = settings."a${actionNumber}_dayDimmers"
+		def aLevel = settings."a${actionNumber}_dayDimmerLevel"
+		def aHueColor = settings."a${actionNumber}_dayHueColor"
+
+
+		aDimmers.each{
+			dimmer ->
+			log.debug dimmer.capabilities.name
+			if("Color Control" in dimmer.capabilities.name && aHueColor)
+			{
+				state."d${dimmer.id}_endDelay" = endDelay
+				log.debug state."d${dimmer.id}_endDelay"
+				state.previous[dimmer.id] = [
+				"switch": dimmer.currentValue("switch"),
+				"level" : dimmer.currentValue("level"),
+				"hue": dimmer.currentValue("hue"),
+				"saturation": dimmer.currentValue("saturation")
+				]
+
+				log.debug "SETTING HUE SETTINGS"
+				//dimmer.setColot([hue: getHueColor(aHueColor), saturation: getHueSat(aHueColor), level: aLevel])
+			}
+			else
+			{
+				state."d${dimmer.id}_endDelay" = endDelay
+				log.debug state."d${dimmer.id}_endDelay"
+				state.previous[dimmer.id] = (dimmer.currentValue("switch") == "on") ? dimmer.currentValue("level") : 0
+				//dimmer.setLevel(aLevel)
+			}
+			pause(100)
+		}
+
+	}
+	else
+	{
+		// Settings for night time
+		def aTimeNow = now()
+		def aDelay = settings."a${actionNumber}_durationNight"
+
+		long endDelay = now() + (aDelay * 100)
+		setEndDelay(actionNumber, endDelay)
+		state.endDelay[actionNumber] = endDelay
+
+		def aDimmers = settings."a${actionNumber}_nightDimmers"
+		def aLevel = settings."a${actionNumber}_nightDimmerLevel"
+		def aHueColor = settings."a${actionNumber}_nightHueColor"
+
+
+		aDimmers.each{
+			dimmer ->
+			log.debug dimmer.capabilities.name
+			if("Color Control" in dimmer.capabilities.name && aHueColor)
+			{
+				state."d${dimmer.id}_endDelay" = endDelay
+				state.previous[dimmer.id] = [
+				"switch": dimmer.currentValue("switch"),
+				"level" : dimmer.currentValue("level"),
+				"hue": dimmer.currentValue("hue"),
+				"saturation": dimmer.currentValue("saturation")
+				]
+
+				log.debug "SETTING HUE SETTINGS"
+				//dimmer.setColot([hue: getHueColor(aHueColor), saturation: getHueSat(aHueColor), level: aLevel])
+			}
+			else
+			{
+				state."d${dimmer.id}_endDelay" = endDelay
+				state.previous[dimmer.id] = (dimmer.currentValue("switch") == "on") ? dimmer.currentValue("level") : 0
+				//dimmer.setLevel(aLevel)
+			}
+			pause(100)
+		}
+
+		
+
+	}
+
+}
+
+
+def resetLights()
+{
+	//This is when lights are getting reset
+	//runIn(10, resetLights)
+	//log.debug "Resetting Lights"
+	//log.debug "End Delay ${getEndDelay(1)}"
+	
+	
+	for (int n = 1; n <= numOfActions; n++)
+	{
+
+		def endDelay = state."a${n}_endDelay"
+		log.debug now()
+		log.debug "End Delay: $endDelay"
+
+		if(endDelay != null )
+		{
+			if(now() >= endDelay)
+			{
+				log.debug "End Delay Has Expired For Action"
+
+				def aDimmers = settings."a${n}_dayDimmers"
+				aDimmers.each{
+					dimmer ->
+					def lightDelay = state."d${dimmer.id}_endDelay"
+					if(lightDelay != null)
+					{
+						if(now() >= lightDelay)
+						{
+							log.debug "Light Delay Has Expired - Light End Delay: $lightDelay"
+							log.debug "Reseting Lights Now"
+							log.debug state.previous[dimmer.id]
+							state."d${dimmer.id}_endDelay" = null
+						}
+						else
+						{
+							log.debug "Light Delay Has Not Expired"
+						}
+					}
+				}
+				log.debug "End Delay Has Expired"
+				state."a${n}_endDelay" = null
+				
+			}
+			else
+			{
+				log.debug "End Delay Has Not Expired"
+				//def runInTime = (endDelay - now())/100
+				//log.debug "Running In: $runInTime"
+				//runIn(runInTime, resetLights)
+			}
+		}
+	
+
+
+	}
+	
+
+
+
 }
 
 def TRACE(msg) {
 	log.debug msg
     //log.debug("state $state")
 }
+
+/*
+section("Daytime Dimmers")
+		{
+			input "a${n}_dayDimmers","capability.switchLevel", title: "Daytime Dimmers", multiple: true, required: false
+			input "a${n}_dayDimmerLevel", "number", title: "Set Dimmer To This Level", required: false
+			if(hasHue == "true")
+			{
+				input "a${n}_dayHueColor", "enum", title: "Day Hue Color", required: false, multiple:false, options: [
+					["Soft White":"Soft White - Default"],
+					["White":"White - Concentrate"],
+					["Daylight":"Daylight - Energize"],
+					["Warm White":"Warm White - Relax"],
+					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
+			}
+
+			input "a${n}_durationDay", "number", title: "How Long to apply these settings? (seconds)", required: false
+
+			input "a${n}_resetAfterDelay", "boolean", title: "Set back to orginal settings after delay", defaultValue: true, submitOnChange: true
+
+			if(settings."a${n}_resetAfterDelay" == "false")
+			{
+				input "a${n}_dayDimmerLevelAfter", "number", title: "Set Dimmer To This Level", required: false
+				if(hasHue == "true")
+				{
+					input "a${n}_dayHueColorAfter", "enum", title: "Day Hue Color", required: false, multiple:false, options: [
+						["Soft White":"Soft White - Default"],
+						["White":"White - Concentrate"],
+						["Daylight":"Daylight - Energize"],
+						["Warm White":"Warm White - Relax"],
+						"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
+				}
+			}
+
+		}
+		*/
+
+
+//******************************************
+
+
+def getSunriseWithOffset(srOff) {
+	def srOffTime = getSunriseAndSunset(zipCode: settings.zipCode, sunriseOffset:srOff)
+    //log.debug(srOffTime)
+    return srOffTime.sunrise
+}
+
+def getSunsetWithOffset(ssOff) {
+	def ssOffTime = getSunriseAndSunset(zipCode: settings.zipCode, sunsetOffset:ssOff)
+	return ssOffTime.sunset
+}
+
+def sunriseOffset() {
+
+	if ((settings.sunriseOffsetValue != null) && (settings.sunriseOffsetDir != null)) {
+		def offsetString = ""
+		if (settings.sunriseOffsetDir == 'Before') {
+			offsetString = "-"
+		}
+		offsetString += settings.sunriseOffsetValue
+		return offsetString
+	} else {
+		return "00:00"
+	}
+}
+
+def sunsetOffset() {
+
+	if ((settings.sunsetOffsetValue != null) && (settings.sunsetOffsetDir != null)) {
+		def offsetString = ""
+		if (settings.sunsetOffsetDir == 'Before') {
+			offsetString = "-"
+		}
+		offsetString += settings.sunsetOffsetValue
+		return offsetString
+	} else {
+		return "00:00"
+	}
+}
+
+def isDayTime()
+{
+	def srOff = sunriseOffset()
+    def ssOff = sunsetOffset()
+    log.debug("srOff: $srOff , ssOff: $ssOff")
+
+    def sunriseScheduleTime = getSunriseWithOffset(srOff)
+	def sunsetScheduleTime = getSunsetWithOffset(ssOff)
+
+
+	if(sunriseScheduleTime.time > now() || sunsetScheduleTime.time < now())
+	{
+    	log.debug "It is night time"
+    	state.dayTime = false
+    	return false
+    }
+    else 
+    {
+    	log.debug "It is day time"
+    	state.dayTime = true
+    	return true
+    }
+}
+
+int getHueColor(color)
+{
+	def hueColor =  0
+
+	switch(color) 
+	{
+
+		case "White":
+			hueColor = 52
+			break;
+		case "Daylight":
+			hueColor = 53
+			break;
+		case "Soft White":
+			hueColor = 23
+			break;
+		case "Warm White":
+			hueColor = 20
+			break;
+		case "Blue":
+			hueColor = 70
+			break;
+		case "Green":
+			hueColor = 39
+			break;
+		case "Yellow":
+			hueColor = 25
+			break;
+		case "Orange":
+			hueColor = 10
+			break;
+		case "Purple":
+			hueColor = 75
+			break;
+		case "Pink":
+			hueColor = 83
+			break;
+		case "Red":
+			hueColor = 100
+			break;
+	}
+	return hueColor
+}
+
+int getHueSat(color)
+{
+	def hueSaturation = 100
+
+	switch(color) 
+	{
+		case "White":
+			hueSaturation = 19
+			break;
+		case "Daylight":
+			hueSaturation = 91
+			break;
+		case "Soft White":
+			hueSaturation = 56
+			break;
+		case "Warm White":
+			hueSaturation = 80 //83
+			break;
+	}
+	return hueSaturation
+}
+
+public setEndDelay(actionNumber, endDelay)
+{
+	state.endDelay[actionNumber] = endDelay
+}
+
+private getEndDelay(actionNumber)
+{
+	return state.endDelay[actionNumber]
+}
+
+
 
