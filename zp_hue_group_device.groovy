@@ -177,7 +177,6 @@ def setHue(percent, transitiontime)
 
 def setColor(value) {
 	log.debug "setColor: ${value}"
-	parent.setGroupColor(this, value)
 
 	// TODO: convert hue and saturation to hex and just send a color event
 	if(value.transitiontime)
@@ -187,6 +186,7 @@ def setColor(value) {
 	else
 	{
 		snedEvent(name: "transitiontime", value: 4)
+		value << [transitiontime: 4]
 	}
 	if (value.hex) 
 	{
@@ -206,6 +206,7 @@ def setColor(value) {
 	{
 		sendEvent(name: "switch", value: value.switch)
 	}
+	parent.setGroupColor(this, value)
 }
 
 def setAdjustedColor(value) {
