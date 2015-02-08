@@ -89,7 +89,7 @@ def on()
 
 def on(transitiontime)
 {
-	parent.off(this, transitiontime)
+	parent.on(this, transitiontime)
 	sendEvent(name: "switch", value: "off")
 	sendEvent(name: "transitiontime", value: transitiontime)
 }
