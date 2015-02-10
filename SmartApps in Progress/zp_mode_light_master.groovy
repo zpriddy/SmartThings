@@ -252,6 +252,7 @@ def modeSettings(params)
 			if(hueSettings == "true")
 			{
 				paragraph textNightHue
+				input "m${n}_nightHueTransTime", "number", title: "Transition Time between day and night settings in minutes.. (max 60min)", required: false
 				input "m${n}_nightHue1", "capability.switchLevel", title: "Night Hue Lights (Group 1)", multiple: true, required: false
 				input "m${n}_nightHue1Color", "enum", title: "Night Hue Color (Group 1)", required: false, multiple:false, options: [
 					["Soft White":"Soft White - Default"],
@@ -576,7 +577,14 @@ def modeAutoChange()
 		{
 			if(autoChnage == "true")
 			{
-            	state.transitiontime = 600
+            	if("m${n}_nightHueTransTime")
+            	{
+            		state.transitiontime = "m${n}_nightHueTransTime"
+            	}
+            	else
+            	{
+            		state.transitiontime = 4
+            	}
 				modeChnage(n)
 			}
 		}
@@ -586,7 +594,7 @@ def modeAutoChange()
 
 def modeChnage(modeNumber)
 {
-	state.transitiontime = 10
+	state.transitiontime = 4
 
 	def n = modeNumber
 

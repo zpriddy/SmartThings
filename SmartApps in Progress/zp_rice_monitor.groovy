@@ -64,6 +64,9 @@ def appPressed(evt)
 def countReset()
 {
 	unschedule()
+	zOutlet.reset()
+	state.currentEnergy = zOutlet.currentValue("energy")
+	state.prevEnergy = state.currentEnergy
 	state.notify = true
 	state.count = 0
 	state.countHours = 0
@@ -85,6 +88,7 @@ def countReset()
 
 def checkStatus()
 {
+	state.prevEnergy = state.currentEnergy
 	zOutlet.refresh()
 	pause(300)
 	log.debug now()
@@ -97,9 +101,13 @@ def checkStatus()
 	log.debug "HOURS ON: $state.countHours"
 
 	def currentPower = zOutlet.currentValue("power")
+	state.currentEnergy = zOutlet.currentValue("energy")
+	log.debug "Current Energy $state.currentEnergy"
+	log.debug "Previous Energy $state.prevEnergy"
 	log.debug "CURRENT POWER $currentPower"
 
-	if(currentPower > offWatts && zOutlet.currentValue("switch") == "on" && state.notify )
+
+	if(prevEnergy < currentEnergy && zOutlet.currentValue("switch") == "on" && state.notify )
 	{
 		log.debug "The device is powered on"
 		if(resetWatts != null && currentPower > (resetWatts*0.90) && state.countHours > 0.50)
@@ -114,7 +122,7 @@ def checkStatus()
 
 		if(now() >= state.offTime)
 		{
-			if(currentPower > offWatts)
+			if( prevEnergy < currentEnergy && currentPower > offWatts)
 			{
 				sendMessage("Turning off the $zOutlet")
 				zOutlet.off()
@@ -149,7 +157,7 @@ def checkStatus()
 
 
 	}
-	else
+	else if (countHours > 1)
 	{	
 		log.debug "Device is off"
 		state.notify = false
