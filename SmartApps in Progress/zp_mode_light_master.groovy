@@ -316,7 +316,7 @@ def initialize() {
     subscribeToEvents()
     TRACE("End init")
     
-    state.transitiontime = 10
+    state.transitiontime = 4
 }
 
 def subscribeToEvents()
@@ -681,7 +681,7 @@ def modeChnage(modeNumber)
 		def hueSaturation = getHueSat(state.hue1Color)
 		def hueLevel = state.hue1Level
         
-        int tt = state.transitiontime 
+        int tt = state.transitiontime
         log.debug tt
 
 		state.hue1.each{
@@ -704,7 +704,7 @@ def modeChnage(modeNumber)
 	}
     
     
-    state.transitiontime = 10
+    //state.transitiontime = 4
 
 	log.debug "Finished changing lights"
 

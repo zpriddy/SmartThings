@@ -191,11 +191,11 @@ def setColor(value) {
 	// TODO: convert hue and saturation to hex and just send a color event
 	if(value.transitiontime)
 	{
-		snedEvent(name: "transitiontime", value: value.transitiontime)
+		sendEvent(name: "transitiontime", value: value.transitiontime)
 	}
 	else
 	{
-		snedEvent(name: "transitiontime", value: 4)
+		sendEvent(name: "transitiontime", value: 4)
 		value << [transitiontime: 4]
 	}
 	if (value.hex) 

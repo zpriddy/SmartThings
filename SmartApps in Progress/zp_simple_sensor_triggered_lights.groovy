@@ -432,14 +432,14 @@ private actionHandler(actionNumber)
 				]
 
 				log.debug "SETTING HUE SETTINGS"
-				//dimmer.setColot([hue: getHueColor(aHueColor), saturation: getHueSat(aHueColor), level: aLevel])
+				dimmer.setColot([hue: getHueColor(aHueColor), saturation: getHueSat(aHueColor), level: aLevel])
 			}
 			else
 			{
 				state."d${dimmer.id}_endDelay" = endDelay
 				log.debug state."d${dimmer.id}_endDelay"
 				state.previous[dimmer.id] = (dimmer.currentValue("switch") == "on") ? dimmer.currentValue("level") : 0
-				//dimmer.setLevel(aLevel)
+				dimmer.setLevel(aLevel)
 			}
 			pause(100)
 		}
@@ -451,9 +451,9 @@ private actionHandler(actionNumber)
 		def aTimeNow = now()
 		def aDelay = settings."a${actionNumber}_durationNight"
 
-		long endDelay = now() + (aDelay * 100)
-		setEndDelay(actionNumber, endDelay)
-		state.endDelay[actionNumber] = endDelay
+		def endDelay = aTimeNow + (aDelay * 1000)
+		state."a${actionNumber}_endDelay" = endDelay
+		log.debug "Delay End: $endDelay"
 
 		def aDimmers = settings."a${actionNumber}_nightDimmers"
 		def aLevel = settings."a${actionNumber}_nightDimmerLevel"
@@ -474,13 +474,13 @@ private actionHandler(actionNumber)
 				]
 
 				log.debug "SETTING HUE SETTINGS"
-				//dimmer.setColot([hue: getHueColor(aHueColor), saturation: getHueSat(aHueColor), level: aLevel])
+				dimmer.setColot([hue: getHueColor(aHueColor), saturation: getHueSat(aHueColor), level: aLevel])
 			}
 			else
 			{
 				state."d${dimmer.id}_endDelay" = endDelay
 				state.previous[dimmer.id] = (dimmer.currentValue("switch") == "on") ? dimmer.currentValue("level") : 0
-				//dimmer.setLevel(aLevel)
+				dimmer.setLevel(aLevel)
 			}
 			pause(100)
 		}
@@ -513,7 +513,7 @@ def resetLights()
 			{
 				log.debug "End Delay Has Expired For Action"
 
-				def aDimmers = settings."a${n}_dayDimmers"
+				def aDimmers = settings."a${n}_nightDimmers"
 				aDimmers.each{
 					dimmer ->
 					def lightDelay = state."d${dimmer.id}_endDelay"
@@ -523,6 +523,7 @@ def resetLights()
 						{
 							log.debug "Light Delay Has Expired - Light End Delay: $lightDelay"
 							log.debug "Reseting Lights Now"
+							dimmer.setLevel(settings."a${n}_nightDimmerLevelAfter")
 							log.debug state.previous[dimmer.id]
 							state."d${dimmer.id}_endDelay" = null
 						}

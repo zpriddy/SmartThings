@@ -846,7 +846,8 @@ def setGroupColor(childDevice, color) {
 		value.bri = Math.min(Math.round(color.level * 255 / 100), 255)
 		value.on = value.bri > 0
 	}
-	if (color.transitiontime != null){
+	if (color.transitiontime != null)
+	{
 		value.transitiontime = color.transitiontime * 10
 	}
 
