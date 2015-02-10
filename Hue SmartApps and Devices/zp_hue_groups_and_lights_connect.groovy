@@ -744,15 +744,17 @@ def parse(childDevice, description) {
 	}
 }
 
-def on(childDevice, transitiontime, level) {
-	def value = [on: true, level: level]
+def on(childDevice, transitiontime, percent) {
+	def level = Math.min(Math.round(percent * 255 / 100), 255)
+	def value = [on: true, bri: level]
     value.transitiontime = transitiontime * 10
 	log.debug "Executing 'on'"
 	put("lights/${getId(childDevice)}/state", value)
 }
 
-def groupOn(childDevice, transitiontime, level) {
-	def value = [on: true, level: level]
+def groupOn(childDevice, transitiontime, percent) {
+	def level = Math.min(Math.round(percent * 255 / 100), 255)
+	def value = [on: true, bri: level]
 	value.transitiontime = transitiontime * 10
 	log.debug "Executing 'on'"
 	put("groups/${getId(childDevice)}/action", value)
@@ -962,6 +964,7 @@ def convertGroupListToMap() {
 		log.error "Caught error attempting to convert group list to map: $e"
 	}
 }
+
 
 
 

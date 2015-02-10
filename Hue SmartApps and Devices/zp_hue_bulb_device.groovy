@@ -82,6 +82,11 @@ def parse(description) {
 def on() 
 {
 	def level = device.currentValue("level")
+    if(level == null)
+    {
+    	level = 100
+    }
+    log.debug level
 	def transitiontime = 4
 	parent.on(this, 4, level)
 	sendEvent(name: "switch", value: "on")
@@ -91,6 +96,10 @@ def on()
 def on(transitiontime)
 {
 	def level = device.currentValue("level")
+    if(level == null)
+    {
+    	level = 100
+    }
 	parent.on(this, transitiontime, level)
 	sendEvent(name: "switch", value: "off")
 	sendEvent(name: "transitiontime", value: transitiontime)
