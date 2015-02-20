@@ -322,6 +322,7 @@ def initialize() {
 def subscribeToEvents()
 {
 	subscribe(location, modeChangeHandler)
+	subscribe(app, modeAutoChange)
 }
 
 
@@ -537,11 +538,10 @@ def sunrise() {
 }
 
 def sunset() {
-	state.dayTime = true
+	state.dayTime = false
 	scheduleSunriseSunset()
 	TRACE("sunset()")
 	modeAutoChange()
-
 
 }
 
@@ -554,6 +554,8 @@ def modeChangeHandler(evt) {
 
 		log.debug "EVENT VALUE: $evt.value"
 		log.debug "MODE NAME $modeName"
+
+		state.transitiontime = 4
 
 		if(evt.value in modeName)
 		{
@@ -594,11 +596,11 @@ def modeAutoChange()
 
 def modeChnage(modeNumber)
 {
-	state.transitiontime = 4
+	
 
 	def n = modeNumber
 
-	if(isDayTime())
+	if(isDayTime() && state.daytime == "true")
 	{
 		log.debug "Changing lights for daytime"
 
@@ -681,7 +683,7 @@ def modeChnage(modeNumber)
 		def hueSaturation = getHueSat(state.hue1Color)
 		def hueLevel = state.hue1Level
         
-        int tt = state.transitiontime
+        int tt = state.transitiontime * 60
         log.debug tt
 
 		state.hue1.each{
@@ -697,7 +699,7 @@ def modeChnage(modeNumber)
 
 		state.hue2.each{
 			hue ->
-			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt])
+			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt ])
 			pause(350)
 
 		}
@@ -707,6 +709,7 @@ def modeChnage(modeNumber)
     //state.transitiontime = 4
 
 	log.debug "Finished changing lights"
+	scheduleSunriseSunset()
 
 }
 
