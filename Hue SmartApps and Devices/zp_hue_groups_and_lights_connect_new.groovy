@@ -120,6 +120,7 @@ def bulbDiscovery()
 	if((bulbRefreshCount % 3) == 0) {
 		discoverHueBulbs()
 		discoverHueGroups()
+        log.debug "END DISCOVERY"
 	}
 
 	return dynamicPage(name:"bulbDiscovery", title:"Bulb Discovery Started!", nextPage:"", refreshInterval:refreshInterval, install:true, uninstall: true) {
@@ -180,7 +181,7 @@ private verifyHueBridge(String deviceNetworkId) {
 
 private verifyHueBridges() {
 	def devices = getHueBridges().findAll { it?.value?.verified != true }
-	//log.debug "UNVERIFIED BRIDGES!: $devices"
+	log.debug "UNVERIFIED BRIDGES!: $devices"
 	devices.each {
 		verifyHueBridge((it?.value?.ip + ":" + it?.value?.port))
 	}
@@ -217,7 +218,7 @@ Map bulbsDiscovered() {
 }
 
 Map groupsDiscovered() {
-	def bulbs =  getHueGroups()
+	def groups =  getHueGroups()
 	def map = [:]
 	if (groups instanceof java.util.Map) {
 		groups.each {
@@ -236,10 +237,14 @@ Map groupsDiscovered() {
 }
 
 def getHueBulbs() {
+	log.debug state.bulbs
+	log.debug "HUE BULBS:"
 	state.bulbs = state.bulbs ?: [:]
 }
 
 def getHueGroups() {
+	log.debug state.groups
+    log.debug "HUE GROUPS:"
 	state.groups = state.groups ?: [:]
 }
 
@@ -294,6 +299,7 @@ def bulbListHandler(evt) {
 	evt.jsonData.each { k,v ->
 		log.trace "$k: $v"
 		if (v instanceof Map) {
+        	log.debug v.type
 
 			if(v.type == "LightGroup")
 			{
@@ -479,13 +485,21 @@ def locationHandler(evt) {
 			}
 			else
 			{ //GET /api/${state.username}/lights response (application/json)
-				if (!body?.state?.on) 
+            	log.debug "HERE"
+				if (!body.action) 
 				{ //check if first time poll made it here by mistake
+                
+                	if(!body?.type?.equalsIgnoreCase("LightGroup"))
+					{
+						log.debug "LIGHT GROUP!!!"
+					}
+                    
 					def bulbs = getHueBulbs()
 					def groups = getHueGroups()
 
 					log.debug "Adding bulbs and groups to state!"
 					body.each { k,v ->
+                    	log.debug v.type
 						if(v.type == "LightGroup")
 						{
 							groups[k] = [id: k, name: v.name, type: v.type, hub:parsedEvent.hub]
@@ -611,7 +625,7 @@ def parse(childDevice, description) {
             for (bulb in body) {
                 def d = bulbs.find{it.deviceNetworkId == "${app.id}/${bulb.key}"}    
                 if (d) {
-                    if (bulb.value.state.reachable) {
+                    if (bulb.value.state.on) {
                             sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.state?.on ? "on" : "off"])
                             sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
                             sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime / 10])
@@ -898,6 +912,7 @@ def convertBulbListToMap() {
 }
 
 def convertGroupListToMap() {
+	log.debug "CONVERT LIST"
 	try {
 		if (state.groups instanceof java.util.List) {
 			def map = [:]
