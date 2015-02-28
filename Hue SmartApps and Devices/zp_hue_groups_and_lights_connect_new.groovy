@@ -625,7 +625,7 @@ def parse(childDevice, description) {
             for (bulb in body) {
                 def d = bulbs.find{it.deviceNetworkId == "${app.id}/${bulb.key}"}    
                 if (d) {
-                    if (bulb.value.state.on) {
+                    if (bulb.value.state.on || bulb.value.action.on) {
                             sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.state?.on ? "on" : "off"])
                             sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
                             sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime / 10])
@@ -636,7 +636,7 @@ def parse(childDevice, description) {
                                 sendEvent(d.deviceNetworkId, [name: "color", value: hex])
                             }
                         } 
-                        else if (bulb.value.action) {
+                        else if (bulb.value.action　|| bulb.value.action　) {
                             sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.state?.on ? "on" : "off"])
                             sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
                             sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.action?.transitiontime / 10])
@@ -855,6 +855,17 @@ HOST: ${selectedHue}
 
 """, physicalgraph.device.Protocol.LAN, "${selectedHue}"))
 }
+
+private getId(childDevice) {
+	if (childDevice.device?.deviceNetworkId?.startsWith("HUE")) {
+		return childDevice.device?.deviceNetworkId[3..-1]
+	}
+	else {
+		return childDevice.device?.deviceNetworkId.split("/")[-1]
+	}
+}
+
+
 
 private put(path, body) {
 	def uri = "/api/${state.username}/$path"
