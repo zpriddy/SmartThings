@@ -709,7 +709,6 @@ def modeChnage(modeNumber)
                     }
 
         }
-		log.debug light.capabilities
 		if(hasTransTime)
 		{
 			light.off(tt)
@@ -813,12 +812,10 @@ def modeChnage(modeNumber)
 
 			if(hasTransTime)
 			{
-				log.trace "HAS TRANS TIME"
 				hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt])
 			}
 			else
 			{
-				log.trace "NO HAS TRANS TIME"
 				hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel])
 			}
 			pause(350)
