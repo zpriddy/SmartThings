@@ -60,13 +60,28 @@ def parse(description) {
 				def contentType = msg.headers["Content-Type"]
 				if (contentType?.contains("json")) {
 					def bulbs = new groovy.json.JsonSlurper().parseText(msg.body)
+                    boolean isLightGroup = false
+                    bulbs.each{
+                    	log.info it.toString().contains("LightGroup")
+                        isLightGroup = it.toString().contains("LightGroup")
+                    }
+					//log.info "BULBS: $bulbs"
 					if (bulbs.state) {
 						log.warn "NOT PROCESSED: $msg.body"
 					}
                     
 					else {
 						log.debug "HUE BRIDGE, GENERATING BULB LIST EVENT"
-						sendEvent(name: "bulbList", value: device.hub.id, isStateChange: true, data: bulbs)
+                        if(isLightGroup)
+                        {
+                        	log.trace "Sending Group List"
+							sendEvent(name: "groupList", value: device.hub.id, isStateChange: true, data: bulbs)
+                        }
+                        else
+                        {
+                        	log.trace "Sending Bulb List"
+							sendEvent(name: "bulbList", value: device.hub.id, isStateChange: true, data: bulbs)
+                        }
 					}
 				}
 				else if (contentType?.contains("xml")) {
@@ -87,4 +102,5 @@ def refresh() {
 	log.debug "Executing 'refresh'"
 	parent.poll()
 }
+
 

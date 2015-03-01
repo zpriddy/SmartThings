@@ -295,25 +295,29 @@ def initialize() {
 def bulbListHandler(evt) {
 	def bulbs = [:]
 	log.trace "Adding bulbs to state..."
+	//state.bridgeProcessedLightList = true
+	evt.jsonData.each { k,v ->
+		log.trace "$k: $v"
+		if (v instanceof Map) {
+				bulbs[k] = [id: k, name: v.name, type: v.type, hub:evt.value]
+		}
+	}
+	state.bulbs = bulbs
+	log.info "${bulbs.size()} bulbs found"
+}
+
+def groupListHandler(evt) {
+	def groups =[:]
+	log.trace "Adding groups to state..."
 	state.bridgeProcessedLightList = true
 	evt.jsonData.each { k,v ->
 		log.trace "$k: $v"
 		if (v instanceof Map) {
-        	log.debug v.type
-
-			if(v.type == "LightGroup")
-			{
 				groups[k] = [id: k, name: v.name, type: v.type, hub:evt.value]
-			}
-			else
-			{
-				bulbs[k] = [id: k, name: v.name, type: v.type, hub:evt.value]
-			}
 		}
 	}
-	state.bulbs = bulbs
 	state.groups = groups
-	log.info "${bulbs.size()} bulbs found"
+	log.info "${groups.size()} groups found"
 }
 
 
@@ -618,49 +622,94 @@ def parse(childDevice, description) {
 		def bodyString = new String(parsedEvent.body.decodeBase64())
 		log.debug "parse() - ${bodyString}"
 		def body = new groovy.json.JsonSlurper().parseText(bodyString)
+		log.debug "BODY - $body"
 		if (body instanceof java.util.HashMap)
 		{ //poll response
 			def bulbs = getChildDevices()
             //for each bulb
-            for (bulb in body) {
-                def d = bulbs.find{it.deviceNetworkId == "${app.id}/${bulb.key}"}    
-                if (d) {
-                    if (bulb.value.state.on || bulb.value.action.on) {
-                            sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.state?.on ? "on" : "off"])
-                            sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
-                            sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.state?.transitiontime / 10])
-                            if (bulb.value.state.sat) {
-                                def hue = Math.min(Math.round(bulb.value.state.hue * 100 / 65535), 65535) as int
-                                def sat = Math.round(bulb.value.state.sat * 100 / 255) as int
-                                def hex = colorUtil.hslToHex(hue, sat)
-                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
-                            }
-                        } 
-                        else if (bulb.value.action　|| bulb.value.action　) {
-                            sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.state?.on ? "on" : "off"])
-                            sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
-                            sendEvent(d.deviceNetworkId, [name: "transitiontime", value: bulb.value?.action?.transitiontime / 10])
-                            if (bulb.value.state.sat) {
-                                def hue = Math.min(Math.round(bulb.value.state.hue * 100 / 65535), 65535) as int
-                                def sat = Math.round(bulb.value.state.sat * 100 / 255) as int
-                                def hex = colorUtil.hslToHex(hue, sat)
-                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
-                            }
-                        }
-                        else {
-                            sendEvent(d.deviceNetworkId, [name: "switch", value: "off"])
-                            sendEvent(d.deviceNetworkId, [name: "level", value: 100])                     
-                            if (bulb.value.state.sat) {
-                                def hue = 23
-                                def sat = 56
-                                def hex = colorUtil.hslToHex(23, 56)
-                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
-                            }    
-                     }
-                }
+            //LightGroup
 
-            }     
-		}
+             for (bulb in body) {
+                def d = bulbs.find{it.deviceNetworkId == "${app.id}/${bulb.key}"}
+                 if (d) {
+                 	if(bulb.value.type != "LightGroup")
+                 	{
+	                		log.debug "Reading Poll for Non-LightGroups"
+		                    if (bulb.value.state.reachable) {
+		                            sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.state?.on ? "on" : "off"])
+		                            sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
+		                            if (bulb.value.state.sat) {
+		                                def hue = Math.min(Math.round(bulb.value.state.hue * 100 / 65535), 65535) as int
+		                                def sat = Math.round(bulb.value.state.sat * 100 / 255) as int
+		                                def hex = colorUtil.hslToHex(hue, sat)
+		                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+		                            }
+		                        } else {
+		                            sendEvent(d.deviceNetworkId, [name: "switch", value: "off"])
+		                            sendEvent(d.deviceNetworkId, [name: "level", value: 100])                     
+		                            if (bulb.value.state.sat) {
+		                                def hue = 23
+		                                def sat = 56
+		                                def hex = colorUtil.hslToHex(23, 56)
+		                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+		                            }    
+		                     }
+		                 }
+	                 }
+	             }
+
+	        bulbs = getChildDevices()
+            for (bulb in body) {
+                def d = bulbs.find{it.deviceNetworkId == "${app.id}/${bulb.key}g"}    
+                if (d) {
+                	/*
+                	if(bulb.value.type != "LightGroup")
+                	{
+                		log.debug "Reading Poll for Non-LightGroups"
+	                    if (bulb.value.state.reachable) {
+	                            sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.state?.on ? "on" : "off"])
+	                            sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.state.bri * 100 / 255)])
+	                            if (bulb.value.state.sat) {
+	                                def hue = Math.min(Math.round(bulb.value.state.hue * 100 / 65535), 65535) as int
+	                                def sat = Math.round(bulb.value.state.sat * 100 / 255) as int
+	                                def hex = colorUtil.hslToHex(hue, sat)
+	                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+	                            }
+	                        } else {
+	                            sendEvent(d.deviceNetworkId, [name: "switch", value: "off"])
+	                            sendEvent(d.deviceNetworkId, [name: "level", value: 100])                     
+	                            if (bulb.value.state.sat) {
+	                                def hue = 23
+	                                def sat = 56
+	                                def hex = colorUtil.hslToHex(23, 56)
+	                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+	                            }    
+	                     }
+	                 }
+	                 */
+	                if(bulb.value.type == "LightGroup")
+                	{
+                		
+                		log.debug "Reading Poll for LightGroups"
+	              
+                        sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.action?.on ? "on" : "off"])
+                        sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.action.bri * 100 / 255)])
+                        if (bulb.value.action.sat) 
+                        {
+                            def hue = Math.min(Math.round(bulb.value.action.hue * 100 / 65535), 65535) as int
+                            def sat = Math.round(bulb.value.action.sat * 100 / 255) as int
+                            def hex = colorUtil.hslToHex(hue, sat)
+                            sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+                        }
+                    }
+	                        
+                }
+             }
+       	
+
+
+
+   		}     
 		else
 		{ //put response
 			def hsl = [:]
@@ -668,10 +717,20 @@ def parse(childDevice, description) {
 				log.debug $payload
 				if (payload?.success)
 				{
+
 					def childDeviceNetworkId = app.id + "/"
 					def eventType
 					body?.success[0].each { k,v ->
-						childDeviceNetworkId += k.split("/")[2]
+						log.trace "********************************************************"
+						log.debug "********************************************************"
+						if(k.split("/")[1] == "groups")
+						{
+							childDeviceNetworkId += k.split("/")[2] + "g"
+						}
+						else
+						{
+							childDeviceNetworkId += k.split("/")[2]
+						}
 						if (!hsl[childDeviceNetworkId]) hsl[childDeviceNetworkId] = [:]
 						eventType = k.split("/")[4]
 						log.debug "eventType: $eventType"
@@ -854,10 +913,14 @@ HOST: ${selectedHue}
 HOST: ${selectedHue}
 
 """, physicalgraph.device.Protocol.LAN, "${selectedHue}"))
+
+
 }
 
 private getId(childDevice) {
+	log.debug "WORKING SPOT"
 	if (childDevice.device?.deviceNetworkId?.startsWith("HUE")) {
+		log.trace childDevice.device?.deviceNetworkId[3..-1]
 		return childDevice.device?.deviceNetworkId[3..-1]
 	}
 	else {
@@ -869,6 +932,12 @@ private getId(childDevice) {
 
 private put(path, body) {
 	def uri = "/api/${state.username}/$path"
+	if(path.startsWith("groups"))
+	{
+		log.debug "MODIFY GROUPS"
+		uri = "/api/${state.username}/$path"[0..-1]
+
+	}
 	def bodyJSON = new groovy.json.JsonBuilder(body).toString()
 	def length = bodyJSON.getBytes().size().toString()
 
@@ -928,7 +997,7 @@ def convertGroupListToMap() {
 		if (state.groups instanceof java.util.List) {
 			def map = [:]
 			state.groups.unique {it.id}.each { group ->
-				map << ["${group.id}":["id":group.id, "name":group.name, "hub":group.hub]]
+				map << ["${group.id}g":["id":group.id+"g", "name":group.name, "hub":group.hub]]
 			}
 			state.group = map
 		}

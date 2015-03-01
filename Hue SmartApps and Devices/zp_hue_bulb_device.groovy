@@ -14,6 +14,7 @@ metadata {
 		capability "Polling"
 		capability "Refresh"
 		capability "Sensor"
+        capability "Test Capability" //Hope to replace with Transistion Time
 
 		command "setAdjustedColor"
 	}
@@ -234,7 +235,7 @@ def save() {
 
 def refresh() {
 	log.debug "Executing 'refresh'"
-	parent.poll(this)
+	parent.poll()
 }
 
 def adjustOutgoingHue(percent) {
