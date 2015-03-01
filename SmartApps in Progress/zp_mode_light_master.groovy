@@ -198,9 +198,13 @@ def modeSettings(params)
 		{
 			paragraph textAutoChange
 			input "m${n}_auto", "boolean", title: "Auto Chnage", required: true
+			paragraph "If your lights have Transition Time capability, you can set this value"
+			input "m${n}_autoTransTime", "number", title: "Transition Time between day and night settings in minutes.. (max 60min)", required: false
 		}
 		section("Day Settings For ${name}", hideable: true, hidden: false)
 		{
+			paragraph "If your lights have Transition Time capability, you can set this value"
+			input "m${n}_dayTransTime", "number", title: "Transition Time when chaning to this mode (sec)", required: false
 			paragraph textDayLightsOff
 			input "m${n}_dayLightsOff", "capability.switch", title: "Day Switches Off",  multiple: true, required: false
 			paragraph textDayLightsOn
@@ -216,7 +220,7 @@ def modeSettings(params)
 			if(hueSettings == "true")
 			{
 				paragraph textDayHue
-				input "m${n}_dayHue1", "capability.switchLevel", title: "Day Hue Lights (Group 1)", multiple: true, required: false
+				input "m${n}_dayHue1", "capability.colorControl", title: "Day Hue Lights (Group 1)", multiple: true, required: false
 				input "m${n}_dayHue1Color", "enum", title: "Day Hue Color (Group 1)", required: false, multiple:false, options: [
 					["Soft White":"Soft White - Default"],
 					["White":"White - Concentrate"],
@@ -225,7 +229,7 @@ def modeSettings(params)
 					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
 				input "m${n}_dayHue1Level", "number", title: "Set Hue To This Level (Group 1)", required: false
 				paragraph ""
-				input "m${n}_dayHue2", "capability.switchLevel", title: "Day Hue Lights (Group 2)", multiple: true, required: false
+				input "m${n}_dayHue2", "capability.colorControl", title: "Day Hue Lights (Group 2)", multiple: true, required: false
 				input "m${n}_dayHue2Color", "enum", title: "Day Hue Color (Group 2)", required: false, multiple:false, options: [
 					["Soft White":"Soft White - Default"],
 					["White":"White - Concentrate"],
@@ -237,6 +241,8 @@ def modeSettings(params)
 		}
 		section("Night Settings For ${name}", hideable: true, hidden: false)
 		{
+			paragraph "If your lights have Transition Time capability, you can set this value"
+			input "m${n}_nightTransTime", "number", title: "Transition Time when chaning to this mode (sec)", required: false
 			paragraph textNightLightsOff
 			input "m${n}_nightLightsOff", "capability.switch", title: "Night Switches Off",  multiple: true, required: false
 			paragraph textNightLightsOn
@@ -252,8 +258,7 @@ def modeSettings(params)
 			if(hueSettings == "true")
 			{
 				paragraph textNightHue
-				input "m${n}_nightHueTransTime", "number", title: "Transition Time between day and night settings in minutes.. (max 60min)", required: false
-				input "m${n}_nightHue1", "capability.switchLevel", title: "Night Hue Lights (Group 1)", multiple: true, required: false
+				input "m${n}_nightHue1", "capability.colorControl", title: "Night Hue Lights (Group 1)", multiple: true, required: false
 				input "m${n}_nightHue1Color", "enum", title: "Night Hue Color (Group 1)", required: false, multiple:false, options: [
 					["Soft White":"Soft White - Default"],
 					["White":"White - Concentrate"],
@@ -262,7 +267,7 @@ def modeSettings(params)
 					"Red","Green","Blue","Yellow","Orange","Purple","Pink"]
 				input "m${n}_nightHue1Level", "number", title: "Set Hue To This Level (Group 1)", required: false
 				paragraph ""
-				input "m${n}_nightHue2", "capability.switchLevel", title: "Night Hue Lights (Group 2)", multiple: true, required: false
+				input "m${n}_nightHue2", "capability.colorControl", title: "Night Hue Lights (Group 2)", multiple: true, required: false
 				input "m${n}_nightHue2Color", "enum", title: "Night Hue Color (Group 2)", required: false, multiple:false, options: [
 					["Soft White":"Soft White - Default"],
 					["White":"White - Concentrate"],
@@ -555,7 +560,14 @@ def modeChangeHandler(evt) {
 		log.debug "EVENT VALUE: $evt.value"
 		log.debug "MODE NAME $modeName"
 
-		state.transitiontime = 4
+		if(isDayTime() && state.daytime == "true")
+		{
+			state.transitiontime = settings."m${n}_dayTransTime"
+		}
+		else
+		{
+			state.transitiontime = settings."m${n}_dayTransTime"
+		}
 
 		if(evt.value in modeName)
 		{
@@ -565,6 +577,35 @@ def modeChangeHandler(evt) {
 	}
 
 	log.debug "Finished Changing All"
+}
+
+def modeAutoChange(evt)
+{
+	for (int n = 1; n <= numModeTypes; n++)
+	{
+		def name = settings."m${n}_name"
+		def modeName = settings."m${n}_mode"
+		def autoChnage = settings."m${n}_auto"
+
+		if(location.mode in modeName)
+		{
+			if(autoChnage == "true")
+			{
+            	if(settings."m${n}_autoTransTime")
+            	{
+            		log.debug settings."m${n}_autoTransTime"
+            		state.transitiontime = (settings."m${n}_autoTransTime" as Integer) * 60
+
+            	}
+            	else
+            	{
+            		state.transitiontime = 4
+            	}
+				modeChnage(n)
+			}
+		}
+
+	}
 }
 
 def modeAutoChange()
@@ -579,9 +620,11 @@ def modeAutoChange()
 		{
 			if(autoChnage == "true")
 			{
-            	if("m${n}_nightHueTransTime")
+            	if(settings."m${n}_autoTransTime")
             	{
-            		state.transitiontime = "m${n}_nightHueTransTime"
+            		log.debug settings."m${n}_autoTransTime"
+            		state.transitiontime = (settings."m${n}_autoTransTime" as Integer) * 60
+
             	}
             	else
             	{
@@ -650,30 +693,100 @@ def modeChnage(modeNumber)
 
 	log.debug "Starting to chnage lights"
 
+	int tt = state.transitiontime
+    log.debug tt
+
 
 	state.lightsOff.each{
 		light ->
-		light.off()
+        boolean hasTransTime = false 
+        for(capability in light.capabilities)
+        { 
+            if(capability.toString().contains("Test Capability"))
+            {
+                hasTransTime = true
+                break
+                    }
+
+        }
+		log.debug light.capabilities
+		if(hasTransTime)
+		{
+			light.off(tt)
+		}
+		else
+		{
+			light.off()
+		}
 		pause(100)
 	}
 
 	state.lightsOn.each{
 		light ->
-		light.on()
+        boolean hasTransTime = false 
+        for(capability in light.capabilities)
+        { 
+            if(capability.toString().contains("Test Capability"))
+            {
+                hasTransTime = true
+                break
+                    }
+
+        }
+		if(hasTransTime)
+		{
+			light.on(tt)
+		}
+		else
+		{
+			light.on()
+		}
 		pause(100)
 	}
 
 	state.lightsDim1.each{
 		light ->
-		light.on()
-		light.setLevel(state.lightsDim1Level as int)
+        boolean hasTransTime = false 
+        for(capability in light.capabilities)
+        { 
+            if(capability.toString().contains("Test Capability"))
+            {
+                hasTransTime = true
+                break
+                    }
+
+        }
+		if(hasTransTime)
+		{
+			light.setLevel(state.lightsDim1Level as int, tt)
+		}
+		else
+		{
+			light.setLevel(state.lightsDim1Level as int)
+		}
 		pause(100)
 	}
 
 	state.lightsDim2.each{
 		light ->
-		light.on()
-		light.setLevel(state.lightsDim2Level as int)
+        boolean hasTransTime = false 
+        for(capability in light.capabilities)
+        { 
+            if(capability.toString().contains("Test Capability"))
+            {
+                hasTransTime = true
+                break
+                    }
+
+        }
+		if(hasTransTime)
+		{
+			light.setLevel(state.lightsDim2Level as int, tt)
+		}
+		else
+		{
+			light.setLevel(state.lightsDim2Level as int)
+		}
 		pause(100)
 	}
 
@@ -683,12 +796,31 @@ def modeChnage(modeNumber)
 		def hueSaturation = getHueSat(state.hue1Color)
 		def hueLevel = state.hue1Level
         
-        int tt = state.transitiontime * 60
-        log.debug tt
+        
 
 		state.hue1.each{
 			hue ->
-			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt])
+            boolean hasTransTime = false 
+            for(capability in hue.capabilities)
+            { 
+            	if(capability.toString().contains("Test Capability"))
+                {
+                	hasTransTime = true
+                    break
+               	}
+                	
+            }
+
+			if(hasTransTime)
+			{
+				log.trace "HAS TRANS TIME"
+				hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt])
+			}
+			else
+			{
+				log.trace "NO HAS TRANS TIME"
+				hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel])
+			}
 			pause(350)
 
 		}
@@ -699,7 +831,24 @@ def modeChnage(modeNumber)
 
 		state.hue2.each{
 			hue ->
-			hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt ])
+            boolean hasTransTime = false 
+            for(capability in hue.capabilities)
+            { 
+            	if(capability.toString().contains("Test Capability"))
+                {
+                	hasTransTime = true
+                    break
+               	}
+                	
+            }
+			if(hasTransTime)
+			{
+				hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel, transitiontime: tt])
+			}
+			else
+			{
+				hue.setColor([hue: hueColor, saturation: hueSaturation, level: hueLevel])
+			}
 			pause(350)
 
 		}
