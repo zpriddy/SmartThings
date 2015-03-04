@@ -199,12 +199,12 @@ def modeSettings(params)
 			paragraph textAutoChange
 			input "m${n}_auto", "boolean", title: "Auto Chnage", required: true
 			paragraph "If your lights have Transition Time capability, you can set this value"
-			input "m${n}_autoTransTime", "number", title: "Transition Time between day and night settings in minutes.. (max 60min)", required: false
+			input "m${n}_autoTransTime", "number", title: "Transition Time between day and night settings in minutes.. (max 60min)", required: false, defaultValue: 5
 		}
 		section("Day Settings For ${name}", hideable: true, hidden: false)
 		{
 			paragraph "If your lights have Transition Time capability, you can set this value"
-			input "m${n}_dayTransTime", "number", title: "Transition Time when chaning to this mode (sec)", required: false
+			input "m${n}_dayTransTime", "number", title: "Transition Time when chaning to this mode (sec)", required: false, defaultValue: 3
 			paragraph textDayLightsOff
 			input "m${n}_dayLightsOff", "capability.switch", title: "Day Switches Off",  multiple: true, required: false
 			paragraph textDayLightsOn
@@ -242,7 +242,7 @@ def modeSettings(params)
 		section("Night Settings For ${name}", hideable: true, hidden: false)
 		{
 			paragraph "If your lights have Transition Time capability, you can set this value"
-			input "m${n}_nightTransTime", "number", title: "Transition Time when chaning to this mode (sec)", required: false
+			input "m${n}_nightTransTime", "number", title: "Transition Time when chaning to this mode (sec)", required: false, defaultValue: 3
 			paragraph textNightLightsOff
 			input "m${n}_nightLightsOff", "capability.switch", title: "Night Switches Off",  multiple: true, required: false
 			paragraph textNightLightsOn
@@ -327,7 +327,7 @@ def initialize() {
 def subscribeToEvents()
 {
 	subscribe(location, modeChangeHandler)
-	subscribe(app, modeAutoChange)
+	subscribe(app, modeChangeHandler)
 }
 
 
@@ -560,13 +560,13 @@ def modeChangeHandler(evt) {
 		log.debug "EVENT VALUE: $evt.value"
 		log.debug "MODE NAME $modeName"
 
-		if(isDayTime() && state.daytime == "true")
+		if(isDayTime()) //&& state.daytime == "true"
 		{
 			state.transitiontime = settings."m${n}_dayTransTime"
 		}
 		else
 		{
-			state.transitiontime = settings."m${n}_dayTransTime"
+			state.transitiontime = settings."m${n}_nightTransTime"
 		}
 
 		if(evt.value in modeName)
@@ -643,7 +643,7 @@ def modeChnage(modeNumber)
 
 	def n = modeNumber
 
-	if(isDayTime() && state.daytime == "true")
+	if(isDayTime() ) //&& state.daytime == "true"
 	{
 		log.debug "Changing lights for daytime"
 
