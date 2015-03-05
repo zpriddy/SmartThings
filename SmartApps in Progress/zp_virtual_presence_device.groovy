@@ -1,8 +1,27 @@
+/**
+ *  ZP Virtual Presense
+ *
+ *	This is a virtual presense sensor that you can set to emulate a 
+ *	presence sensor. 
+ *
+ *  This uses a SmartThings SmartPresense Sensor and a virtual switch and a
+ *	ZP Virtual Presense Device.
+ *
+ *	This allowes you to have a SmartPresense Sensor that you can give to a 
+ *	house sitter so that your house will react to them. 
+ * 
+ *	The ZP Virtual Presence is what you use for HelloHome actions and presence 
+ *	based actions. The presence sensor will be the same as the SmartPresence 
+ *	sensor when the enable virtal switch is on. It will display as away all 
+ *	the time when the enable switch is off. This allowes HelloHome actions to
+ *	work as normal when you have no house sitter and leave the tag on your 
+ *	key rack. 
+ */
+
 metadata {
 	// Automatically generated. Make future change here.
 	definition (name: "ZP Virtual Presence", namespace: "zpriddy", author: "zpriddy") {
 
-		capability "Signal Strength"
 		capability "Presence Sensor"
 		capability "Sensor"
         
