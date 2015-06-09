@@ -10,8 +10,8 @@ definition(
     author: "zpriddy",
     description: "Turn your lights on when motion is detected and then off again once the motion stops for a set period of time unless an override switch is enabled.",
     category: "Convenience",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Meta/temp_thermo-switch.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Meta/temp_thermo-switch@2x.png"
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Meta/light_contact-outlet-luminance.png",
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Meta/light_contact-outlet-luminance@2x.png"
 )
 
 preferences {
@@ -43,7 +43,7 @@ def updated() {
 
 def motionHandler(evt) {
 	log.debug "$evt.name: $evt.value"
-	def overrideEnable = overrideSwitch.currentValue("switch")
+	def overrideEnable = overrideSwitch.currentSwitch
 	log.debug "Override Switch: $overrideEnable"
 	if(overrideEnable == "off")
 	{
@@ -63,13 +63,14 @@ def motionHandler(evt) {
 def scheduleCheck() {
 	log.debug "schedule check"
 	def motionState = motion1.currentState("motion")
+	def overrideEnable = overrideSwitch.currentSwitch
     if (motionState.value == "inactive") {
         def elapsed = now() - motionState.rawDateCreated.time
     	def threshold = 1000 * 60 * minutes1 - 1000
     	if (elapsed >= threshold) 
     	{
             log.debug "Motion has stayed inactive long enough since last check ($elapsed ms):  turning lights off"
-            if(verrideEnable == "off")
+            if(overrideEnable == "off")
             {
             	switches.off()
             }
@@ -88,4 +89,3 @@ def scheduleCheck() {
     	log.debug "Motion is active, do nothing and wait for inactive"
     }
 }
-

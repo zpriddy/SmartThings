@@ -1,10 +1,10 @@
 /**
- *  It's Too Cold
+ *  Room Window AC Temperature Control With Peak Time Control
  *
  *  Author: SmartThings
  */
 definition(
-    name: "Room Window AC Temperature Control",
+    name: "Room Window AC Temperature Control With Peak Time Control",
     namespace: "zpriddy",
     author: "zpriddy",
     description: "Monitor the temperature and when it drops below your setting get a text and/or turn off a fan.",
@@ -26,6 +26,7 @@ preferences {
 	section("Unless this switch or virtual switch is on...") {
 		input "overrideSwitch", "capability.switch", title: "Enable Switch", multiple: false
 	}
+    
 	section("Turn off when the temperature drops below...") {
 		input "temperatureLow", "number", title: "Temperature?"
 	}
@@ -34,6 +35,21 @@ preferences {
 	}
 	section("Control this switch... (For AC or Fan)") {
 		input "switch1", "capability.switch", required: false
+	}
+    section("Pre-Cooldown for peak time when this switch is on...") {
+		input "prepeak", "capability.switch", title: "Enable Switch", multiple: false
+	}
+    section("Pre-Peak Cool down temperature...") {
+		input "temperatureLowPrePeak", "number", title: "Temperature?"
+	}
+    section("Peak time when this switch is on...") {
+		input "peak", "capability.switch", title: "Enable Switch", multiple: false
+	}
+    section("Peak time high temperature...") {
+		input "temperatureHighPeak", "number", title: "Temperature?"
+	}
+    section("Peak time low temperature...") {
+		input "temperatureLowPeak", "number", title: "Temperature?"
 	}
     section( "Notifications" ) {
         input("recipients", "contact", title: "Send notifications to") {
@@ -49,6 +65,8 @@ def installed() {
 	subscribe(contactSwitch, "contact", doorHandler)
     subscribe(overrideSwitch, "switch", doorHandler)
 	subscribe(temperatureSensor1, "temperature", temperatureHandler)
+    subscribe(prepeak, "switch", peakHandler)
+    subscribe(peak, "switch", peakHandler)
 }
 
 def updated() {
@@ -57,6 +75,24 @@ def updated() {
 	subscribe(contactSwitch, "contact", doorHandler)
     subscribe(overrideSwitch, "switch", doorHandler)
 	subscribe(temperatureSensor1, "temperature", temperatureHandler)
+    subscribe(prepeak, "switch", peakHandler)
+    subscribe(peak, "switch", peakHandler)
+}
+
+def peakHandler(evt)
+{
+	if(prepeak.currentValue("switch") == "on")
+    {
+    	switch1?.on()
+        log.debug "Turnning on for pre-peak time"
+    }
+    if(peak.currentValue("switch") == "on")
+    {
+    	switch1?.off()
+        log.debug "Turnning off for peak time"
+    }
+
+
 }
 
 def doorHandler(evt)
@@ -70,7 +106,16 @@ def doorHandler(evt)
 	{
 		log.debug "Scheduling Next Check if door is open"
 		state.overrideEnable = False
-		runIn(delayMinutes * 60, turnOffDoor);
+        if(switch1.currentValue("switch") == "off")
+        {
+        	state.forceOff = True
+            log.debug "Fored Off = True"
+        }
+        else
+        {
+        	runIn(delayMinutes * 60, turnOffDoor);
+            log.debug "Runnning door check in 60 seconds"
+        }
 	}
 	else if(overrideEnable == "off" && doorState == "closed")
 	{
@@ -106,12 +151,25 @@ def turnOffDoor()
 
 
 def temperatureHandler(evt) {
+	doorHandler(evt)
 	log.trace "temperature: $evt.value, $evt"
 
 	def tooCold = temperatureLow
     def tooHot = temperatureHigh
 	def mySwitch = settings.switch1
 	def forcedOff = state.forceOff
+    
+    if(prepeak.currentValue("switch") == "on")
+    {
+    	log.debug "Using Pre-Peak Temp Setting for Low Temp"
+    	tooCold = temperatureLowPrePeak
+    }
+    if(peak.currentValue("switch") == "on")
+    {
+    	log.debug "Using Peak Temp Setting for High and Low Temp"
+    	tooHot = temperatureHighPeak
+        tooCold = temperatureLowPeak
+    }
 
 	log.debug "ForcedOff Stats: $forcedOff"
 
