@@ -643,6 +643,9 @@ def parse(childDevice, description) {
 		                                def sat = Math.round(bulb.value.state.sat * 100 / 255) as int
 		                                def hex = colorUtil.hslToHex(hue, sat)
 		                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+                                        sendEvent(d.deviceNetworkId, [name: "hue", value: hue])
+                                        sendEvent(d.deviceNetworkId, [name: "saturation", value: sat])
+                                        
 		                            }
 		                        } else {
 		                            sendEvent(d.deviceNetworkId, [name: "switch", value: "off"])
@@ -651,7 +654,9 @@ def parse(childDevice, description) {
 		                                def hue = 23
 		                                def sat = 56
 		                                def hex = colorUtil.hslToHex(23, 56)
-		                                sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+                                        sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+                                        sendEvent(d.deviceNetworkId, [name: "hue", value: hue])
+                                        sendEvent(d.deviceNetworkId, [name: "saturation", value: sat])
 		                            }    
 		                     }
 		                 }
@@ -690,7 +695,7 @@ def parse(childDevice, description) {
 	                if(bulb.value.type == "LightGroup")
                 	{
                 		
-                		log.debug "Reading Poll for LightGroups"
+                		log.trace "Reading Poll for LightGroups"
 	              
                         sendEvent(d.deviceNetworkId, [name: "switch", value: bulb.value?.action?.on ? "on" : "off"])
                         sendEvent(d.deviceNetworkId, [name: "level", value: Math.round(bulb.value.action.bri * 100 / 255)])
@@ -700,6 +705,8 @@ def parse(childDevice, description) {
                             def sat = Math.round(bulb.value.action.sat * 100 / 255) as int
                             def hex = colorUtil.hslToHex(hue, sat)
                             sendEvent(d.deviceNetworkId, [name: "color", value: hex])
+                            sendEvent(d.deviceNetworkId, [name: "hue", value: hue])
+                            sendEvent(d.deviceNetworkId, [name: "saturation", value: sat])
                         }
                     }
 	                        

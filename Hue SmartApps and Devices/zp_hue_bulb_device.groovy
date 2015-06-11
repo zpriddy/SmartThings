@@ -122,7 +122,7 @@ def off(transitiontime)
 }
 
 def poll() {
-	parent.poll(this)
+	parent.poll()
 }
 
 def nextLevel() {
@@ -139,10 +139,16 @@ def nextLevel() {
 def setLevel(percent) 
 {
 	def transitiontime = 4
+	if(device.latestValue("level") as Integer == 0)
+    (
+    	transitiontime = 0
+    )
+	
 	log.debug "Executing 'setLevel'"
 	parent.setLevel(this, percent, transitiontime)
 	sendEvent(name: "level", value: percent)
 	sendEvent(name: "transitiontime", value: transitiontime)
+    sendEvent(name: "switch", value: "on")
 
 }
 def setLevel(percent, transitiontime) 
@@ -188,6 +194,7 @@ def setHue(percent, transitiontime)
 
 def setColor(value) {
 	log.debug "setColor: ${value}"
+    def isOff = false
 
 	// TODO: convert hue and saturation to hex and just send a color event
 	if(value.transitiontime)
@@ -213,12 +220,24 @@ def setColor(value) {
 	{
 		sendEvent(name: "level", value: value.level)
 	}
+    else
+    {
+    	// sendEvent(name: "level", value: 1)
+        value.level = 1
+        value.transitiontime = 0
+        isOff = true
+    }
 	if (value.switch) 
 	{
 		sendEvent(name: "switch", value: value.switch)
 	}
 
 	parent.setColor(this, value)
+    if (isOff) 
+    {
+    	parent.off(this, 0)
+    }
+    
 }
 
 def setAdjustedColor(value) {

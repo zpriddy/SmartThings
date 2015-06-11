@@ -54,9 +54,14 @@ metadata {
 	valueTile("transitiontime", "device.transitiontime", inactiveLabel: false, decoration: "flat") {
 		state "transitiontime", label: 'Transitiontime ${currentValue}   '
 	}
+    valueTile("color", "device.color", inactiveLabel: false, decoration: "flat") {
+		state "color", label: 'color ${currentValue}   '
+	}
+
+
 
 	main(["switch"])
-	details(["switch", "levelSliderControl", "rgbSelector", "refresh","transitiontime"])
+	details(["switch", "levelSliderControl", "rgbSelector", "refresh","transitiontime","color","saturation","level","hue"])
 
 }
 
@@ -121,7 +126,7 @@ def off(transitiontime)
 }
 
 def poll() {
-	parent.poll(this)
+	parent.poll()
 }
 
 def nextLevel() {
@@ -188,7 +193,7 @@ def setHue(percent, transitiontime)
 def setColor(value) {
 	log.debug "setColor: ${value}"
 
-	// TODO: convert hue and saturation to hex and just send a color event
+	
 	if(value.transitiontime)
 	{
 		sendEvent(name: "transitiontime", value: value.transitiontime)
@@ -201,13 +206,18 @@ def setColor(value) {
 	if (value.hex) 
 	{
 		sendEvent(name: "color", value: value.hex)
+        
 	} 
 	else if (value.hue && value.saturation) 
 	{
 		def hex = colorUtil.hslToHex(value.hue, value.saturation)
 		sendEvent(name: "color", value: hex)
 	}
-
+    if (value.hue && value.saturation) 
+	{
+		sendEvent(name: "saturation", value:  value.saturation)
+        sendEvent(name: "hue", value:  value.hue)
+	}
 	if (value.level) 
 	{
 		sendEvent(name: "level", value: value.level)
@@ -233,7 +243,7 @@ def save() {
 
 def refresh() {
 	log.debug "Executing 'refresh'"
-	parent.poll(this)
+	parent.poll()
 }
 
 def adjustOutgoingHue(percent) {
@@ -252,6 +262,7 @@ def adjustOutgoingHue(percent) {
 	log.info "percent: $percent, adjusted: $adjusted"
 	adjusted
 }
+
 
 
 
