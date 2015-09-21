@@ -63,7 +63,7 @@ def initialize() {
 def changeMode() {
 	def emptyHouse = True
     presence.each{
-        if (it.currentValue("presence")[0] == "present")
+        if (it.currentPresence == "present")
         {
             emptyHouse = False
         }
