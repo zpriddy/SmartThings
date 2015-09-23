@@ -25,7 +25,7 @@ preferences {
 	}
     section("Auto Shutoff Options"){
     	input "robotSwitch","capability.switch",title:"Litter Robot Switch", required:false
-        input "shutoffCycles", "number", title: "Shutoff After This Many Cycles", required: false
+        input "shutoffCycles", "number", title: "Shutoff After This Many Cycles"
     }
 	
     section( "Notifications" ) {
@@ -59,6 +59,7 @@ def statusHandler(evt)
 {
 	if (evt.value == "MANUAL CLEANING")
     {
+    	state.cycleInProgress = false
     	robotSwitch.off()
         pause(2000)
         robotSwitch.on()
@@ -74,7 +75,7 @@ def eswitchHandler(evt)
         {
             if (litterRobot.currentValue("cycleCount") < shutoffCycles)
             {
-                send("ALERT: LITTER ROBOT HAS BEEN TURNNED OFF!")
+                send("ALERT: LITTER ROBOT HAS BEEN TURNED OFF!")
                 runIn(2 * 60 * 60, offReminder);
             }
             robotSwitch.off()
@@ -130,6 +131,7 @@ def countCycleError()
     }
     else 
     {
+    	state.cycleInProgress = false
     	send("Litter Robot did not finish cycle. Please check on it.")
     }
 }
@@ -143,7 +145,7 @@ def cycleHandler(evt)
     }
     if (litterRobot.currentValue("cycleCount") >= shutoffCycles)
     {
-    	send("ALERT: LITTER ROBOT HAS BEEN TURNNED OFF! - Litter Robot has reached ${litterRobot.currentValue("cycleCount")} Cycles")
+    	send("ALERT: LITTER ROBOT HAS BEEN TURNED OFF! - Litter Robot has reached ${litterRobot.currentValue("cycleCount")} Cycles")
     	litterRobot.eswitchOff()
         robotSwitch.off()
         runIn(2 * 60 * 60, offReminder);
@@ -152,7 +154,7 @@ def cycleHandler(evt)
 
 def offReminder()
 {
-	send("REMINDER: LITTER ROBOT HAS BEEN TURNNED OFF! - Please check on status")
+	send("REMINDER: LITTER ROBOT HAS BEEN TURNED OFF! - Please check on status")
     runIn(2 * 60 * 60, offReminder);
 }
 
