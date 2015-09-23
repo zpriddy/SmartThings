@@ -25,7 +25,7 @@ preferences {
 	}
     section("Auto Shutoff Options"){
     	input "robotSwitch","capability.switch",title:"Litter Robot Switch", required:false
-        input "shutoffCycles", "number", title: "Shutoff After This Many Cycles"
+        input "shutoffCycles", "number", title: "Shutoff After This Many Cycles", required: false
     }
 	
     section( "Notifications" ) {
