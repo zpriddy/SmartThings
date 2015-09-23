@@ -23,6 +23,10 @@ preferences {
 	section("Alert after this many cycles") {
 		input "maxCycles", "number", title: "Max Cycles?"
 	}
+    section("Auto Shutoff Options"){
+    	input "robotSwitch","capability.switch",title:"Litter Robot Switch", required:false
+        input "shutoffCycles", "number", title: "Shutoff After This Many Cycles"
+    }
 	
     section( "Notifications" ) {
         input("recipients", "contact", title: "Send notifications to") {
@@ -36,22 +40,60 @@ preferences {
 def installed() {
 	state.cycleInProgress = false
 	subscribe(robotSensor, "contact", robotHandler)
-    subscribe(litterRobot, "level", cycleHandler)
+    subscribe(litterRobot, "cycleCount", cycleHandler)
+    subscribe(litterRobot, "eswitch", eswitchHandler)
+    subscribe(litterRobot, "status", statusHandler)
 }
 
 def updated() {
 	unsubscribe()
     state.cycleInProgress = false
 	subscribe(robotSensor, "contact", robotHandler)
-    subscribe(litterRobot, "level", cycleHandler)
+    subscribe(litterRobot, "cycleCount", cycleHandler)
+    subscribe(litterRobot, "eswitch", eswitchHandler)
+    subscribe(litterRobot, "status", statusHandler)
+
 }
 
+def statusHandler(evt)
+{
+	if (evt.value == "MANUAL CLEANING")
+    {
+    	robotSwitch.off()
+        pause(2000)
+        robotSwitch.on()
+        litterRobot.man_clean_on()
+  	}
+
+}
+def eswitchHandler(evt)
+{
+	if(litterRobot.currentValue("status") != "CLEANING" || litterRobot.currentValue("status") != "MANUAL CLEANING")
+    {
+        if (evt.value == "off")
+        {
+            if (litterRobot.currentValue("cycleCount") < shutoffCycles)
+            {
+                send("ALERT: LITTER ROBOT HAS BEEN TURNNED OFF!")
+                runIn(2 * 60 * 60, offReminder);
+            }
+            robotSwitch.off()
+        }
+        if (evt.value == "on")
+        {
+            send("Litter Robot has been turned back on!")
+            unschedule(offReminder)
+            robotSwitch.on()
+        }
+ 	}
+}
 def robotHandler(evt)
 {
+	robotSwitch.on()
 	if (evt.value == "open" && state.cycleInProgress == false )
     {
     	log.trace "New Cycle Starting.."
-    	litterRobot.off()
+    	litterRobot.cycleStart()
         state.cycleInProgress = true
         log.trace "Counting Cycle in 3 minutes."
         runIn(3 * 60, countCycle);
@@ -67,8 +109,8 @@ def countCycle()
 	log.trace "Counting Cycle"
 	if (robotSensor.currentContact == "closed")
     {
-    	litterRobot.setLevel(litterRobot.currentValue("level") + 1)
-        litterRobot.on()
+    	litterRobot.setLevel(litterRobot.currentValue("cycleCount") + 1)
+        litterRobot.cycleEnd()
         state.cycleInProgress = false
     }
     else 
@@ -82,8 +124,8 @@ def countCycleError()
 	log.trace "Counting Cycle"
 	if (robotSensor.currentContact == "closed")
     {
-    	litterRobot.setLevel(litterRobot.currentValue("level") + 1)
-        litterRobot.on()
+    	litterRobot.setLevel(litterRobot.currentValue("cycleCount") + 1)
+        litterRobot.cycleEnd()
         state.cycleInProgress = false
     }
     else 
@@ -94,11 +136,24 @@ def countCycleError()
 
 def cycleHandler(evt)
 {
-	log.trace "LitterRobot Cycles = ${litterRobot.currentValue("level")}"
-	if (litterRobot.currentValue("level") >= maxCycles)
+	log.trace "LitterRobot Cycles = ${litterRobot.currentValue("cycleCount")}"
+	if (litterRobot.currentValue("cycleCount") >= maxCycles && litterRobot.currentValue("cycleCount") < shutoffCycles)
     {
-    	send("Litter Robot has reached ${litterRobot.currentValue("level")} Cycles. It is time to empty it!")
+    	send("Litter Robot has reached ${litterRobot.currentValue("cycleCount")} Cycles. It is time to empty it!")
     }
+    if (litterRobot.currentValue("cycleCount") >= shutoffCycles)
+    {
+    	send("ALERT: LITTER ROBOT HAS BEEN TURNNED OFF! - Litter Robot has reached ${litterRobot.currentValue("cycleCount")} Cycles")
+    	litterRobot.eswitchOff()
+        robotSwitch.off()
+        runIn(2 * 60 * 60, offReminder);
+    }
+}
+
+def offReminder()
+{
+	send("REMINDER: LITTER ROBOT HAS BEEN TURNNED OFF! - Please check on status")
+    runIn(2 * 60 * 60, offReminder);
 }
 
 
