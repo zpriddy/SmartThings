@@ -18,7 +18,7 @@ preferences {
 		input "robotSensor", "capability.contactSensor"
 	}
 	section("Litter Robot Virtual Device"){
-		input "litterRobot", "capability.switchLevel", title: "Litter Robot Virtual Device"
+		input "litterRobot", "capability.actuator", title: "Litter Robot Virtual Device"
 	}
 	section("Alert after this many cycles") {
 		input "maxCycles", "number", title: "Max Cycles?"
