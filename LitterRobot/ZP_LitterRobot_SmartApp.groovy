@@ -39,6 +39,7 @@ preferences {
 
 def installed() {
 	state.cycleInProgress = false
+	litterRobot.cycleEnd()
 	subscribe(robotSensor, "contact", robotHandler)
     subscribe(litterRobot, "cycleCount", cycleHandler)
     subscribe(litterRobot, "eswitch", eswitchHandler)
@@ -48,6 +49,7 @@ def installed() {
 def updated() {
 	unsubscribe()
     state.cycleInProgress = false
+    litterRobot.cycleEnd()
 	subscribe(robotSensor, "contact", robotHandler)
     subscribe(litterRobot, "cycleCount", cycleHandler)
     subscribe(litterRobot, "eswitch", eswitchHandler)
@@ -132,6 +134,7 @@ def countCycleError()
     else 
     {
     	state.cycleInProgress = false
+    	litterRobot.cycleEnd()
     	send("Litter Robot did not finish cycle. Please check on it.")
     }
 }
