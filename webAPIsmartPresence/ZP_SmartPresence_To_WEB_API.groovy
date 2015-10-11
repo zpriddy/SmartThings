@@ -23,14 +23,14 @@ preferences {
 
 def installed()
 {
-	subscribe(presences, "presence", presenceHandler)
+	subscribe(presence, "presence", presenceHandler)
 	subscribe(app,presenceHandler)
 }
 
 def updated()
 {
 	unsubscribe()
-	subscribe(presences, "presence", presenceHandler)
+	subscribe(presence, "presence", presenceHandler)
 	subscribe(app,presenceHandler)
 	log.debug "App Updated"
 }
