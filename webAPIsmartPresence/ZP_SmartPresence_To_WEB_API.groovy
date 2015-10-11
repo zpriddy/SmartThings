@@ -41,7 +41,7 @@ def presenceHandler(evt) {
 
 	def presenceState = presence.currentValue("presence")
     
-    if(presenceState == "present")
+    if(presenceState == "not present")
     {
         postPresence("notpresent")
     }
