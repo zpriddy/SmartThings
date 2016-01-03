@@ -33,10 +33,10 @@ preferences {
 def mainPage() {
 	if(canInstallLabs()) {
 		def lgremotes = lgremotesDiscovered()
-		if (state.lgremotes) {
-			return lgremoteDiscovery()
-		} else {
+		if (state.verified && lgremotes) {
 			return verifyTVcode()
+		} else {
+			return lgremoteDiscovery()
 		}
 	} else {
 		def upgradeNeeded = """To use SmartThings Labs, your Hub should be completely up to date.
@@ -109,7 +109,7 @@ def verifyTVcode()
 		section("Verify TV") {
 
 			paragraph """${paragraphText}"""
-			//input "tvcode", "number", title: "What is the code deisplayed on the TV", required: true, multiple: false
+			input "tvcode", "number", title: "What is the code deisplayed on the TV", required: true, multiple: false
 		}
 	}
 }
@@ -170,6 +170,7 @@ def getVerifiedLgremoteTv()
 
 def installed() {
 	log.trace "Installed with settings: ${settings}"
+	state.verified = false 
 	initialize()}
 
 def updated() {
