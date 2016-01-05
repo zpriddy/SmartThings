@@ -114,6 +114,7 @@ def dryerCheckFinished() {
 			state.dryerNotification = true
 			state.dryerIsRunning = false
 			//TODO: Send Dryer Notification
+            sendNotification()
 		}
 		else {
 			log.trace "Dryer Stop FP"
@@ -149,12 +150,14 @@ def washerCheckFinished() {
 	if (!sensorStates.find{it.value == "active"}){
 		def duration = now() - state.washerStartedAt
 		def cycleTimeMsec = cycleTime ? cycleTime * 60000 : 1800000
+		log.trace cycleTimeMsec
 		if (duration >= cycleTimeMsec) {
 			log.trace "Finished Washing"
 			washerdryer.washer_end()
 			state.washerNotification = true
 			state.washerIsRunning = false
 			//TODO: Send Washer Notification
+            sendNotification()
 		}
 		else {
 			log.trace "Washer Stop FP"

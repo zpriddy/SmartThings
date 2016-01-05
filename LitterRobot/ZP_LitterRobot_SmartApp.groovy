@@ -52,7 +52,6 @@ def updated() {
 
 def initalize() {
 	state.cycleInProgress = false
-	state.cycleState = 0
 
 	subscribe(robotSensor, "contact.open", sensorOpenHandler)
 	subscribe(robotSensor, "contact.closed", sensorClosedHandler)
@@ -114,7 +113,7 @@ def eswitchHandler(evt)
         if (evt.value == "on")
         {
             send("Litter Robot has been turned back on!")
-            unschedule(offReminder)
+            unschedule("offReminder")
             robotSwitch.on()
         }
  	}
@@ -128,6 +127,7 @@ def countCycle()
     	log.trace "Counting Cycle"
         litterRobot.cycleEnd()
         state.cycleInProgress = false
+        unschedule("countCycleError")
     }
     else 
     {
@@ -168,6 +168,8 @@ def cycleHandler(evt)
 
 def resetHandler(evt)
 {
+	unschedule("offReminder")
+
 	if (evt.value == "open")
     {
     	robotSwitch.off()
